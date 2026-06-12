@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title id="pageTitle">코인 공식 웹사이트</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#08080F;--sur:#12121C;--raised:#1C1C2A;
+  --gold:#F5C518;--gold-d:#CFA010;--purple:#7C3AED;
+  --green:#10B981;--white:#F1F5F9;--gray:#94A3B8;--border:#252535;
+  --dis:'Archivo Black',sans-serif;--body:'Space Grotesk',sans-serif;
+  --accent:#F5C518;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{font-family:var(--body);background:var(--bg);color:var(--white);overflow-x:hidden;}
+
+/* ── Edit mode banner ── */
+.edit-banner{
+  background:var(--purple);color:#fff;text-align:center;padding:10px;font-size:13px;
+  position:sticky;top:0;z-index:1000;display:flex;align-items:center;justify-content:center;gap:12px;
+}
+.edit-banner button{background:rgba(255,255,255,.2);border:none;color:#fff;padding:4px 12px;cursor:pointer;font-size:12px;}
+.edit-banner button:hover{background:rgba(255,255,255,.3);}
+#editPanel{
+  position:fixed;right:0;top:0;bottom:0;width:340px;background:var(--sur);border-left:2px solid var(--border);
+  z-index:999;padding:20px;overflow-y:auto;transform:translateX(100%);transition:transform .3s;
+}
+#editPanel.open{transform:none;}
+.ep-title{font-family:var(--dis);font-size:16px;color:var(--gold);margin-bottom:16px;}
+.ep-fg{display:flex;flex-direction:column;gap:5px;margin-bottom:12px;}
+.ep-fg label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--gray);}
+.ep-fg input,.ep-fg textarea,.ep-fg select{
+  background:var(--raised);border:1.5px solid var(--border);color:var(--white);
+  padding:8px 10px;font-family:var(--body);font-size:13px;outline:none;width:100%;
+}
+.ep-fg input:focus,.ep-fg textarea:focus{border-color:var(--gold);}
+.ep-fg textarea{resize:vertical;min-height:50px;}
+.ep-btn{padding:10px;font-family:var(--dis);font-size:12px;border:none;cursor:pointer;
+  background:var(--gold);color:var(--bg);width:100%;text-transform:uppercase;letter-spacing:.05em;}
+
+/* ── NAV ── */
+nav{
+  position:fixed;top:0;left:0;right:0;z-index:100;
+  padding:16px 40px;display:flex;align-items:center;gap:20px;
+  background:rgba(8,8,15,.9);backdrop-filter:blur(14px);
+  border-bottom:1px solid rgba(255,255,255,.06);transition:top .3s;
+}
+.nav-logo{font-family:var(--dis);font-size:20px;color:var(--gold);}
+.nav-links{margin-left:auto;display:flex;gap:28px;}
+.nav-links a{color:var(--gray);text-decoration:none;font-size:14px;font-weight:600;transition:color .2s;}
+.nav-links a:hover{color:var(--white);}
+.nav-cta{padding:9px 22px;background:var(--gold);color:var(--bg);font-family:var(--dis);
+  font-size:13px;border:none;cursor:pointer;text-decoration:none;transition:background .2s;}
+.nav-cta:hover{background:var(--gold-d);}
+
+/* ── HERO ── */
+.hero{
+  min-height:100vh;display:flex;align-items:center;justify-content:center;
+  text-align:center;padding:120px 24px 80px;position:relative;overflow:hidden;
+}
+.hero-bg{
+  position:absolute;inset:0;z-index:0;
+  background:radial-gradient(ellipse 80% 60% at 50% 40%,rgba(245,197,24,.08) 0%,transparent 70%);
+}
+.hero-content{position:relative;z-index:1;max-width:800px;}
+.hero-symbol{
+  display:inline-flex;align-items:center;gap:8px;
+  background:rgba(245,197,24,.1);border:1px solid rgba(245,197,24,.3);
+  padding:6px 16px;font-size:13px;font-weight:700;color:var(--gold);
+  text-transform:uppercase;letter-spacing:.12em;margin-bottom:28px;
+}
+.hero-name{
+  font-family:var(--dis);font-size:clamp(48px,9vw,96px);line-height:.95;
+  color:var(--white);margin-bottom:16px;
+}
+.hero-name .acc{color:var(--gold);}
+.hero-tagline{font-size:clamp(16px,2.5vw,22px);color:var(--gray);margin-bottom:40px;line-height:1.5;}
+.hero-btns{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;}
+.btn-hero{padding:14px 32px;font-family:var(--dis);font-size:15px;border:none;cursor:pointer;
+  transition:all .2s;text-transform:uppercase;letter-spacing:.05em;text-decoration:none;
+  display:inline-flex;align-items:center;gap:8px;}
+.btn-gold{background:var(--gold);color:var(--bg);}
+.btn-gold:hover{background:var(--gold-d);transform:translateY(-2px);}
+.btn-outline{background:transparent;color:var(--white);border:2px solid var(--border);}
+.btn-outline:hover{border-color:var(--white);}
+
+/* ── STATS ── */
+.stats-bar{
+  background:var(--sur);border-top:1px solid var(--border);border-bottom:1px solid var(--border);
+  padding:28px 40px;display:flex;justify-content:center;gap:60px;flex-wrap:wrap;
+}
+.stat{text-align:center;}
+.stat-val{font-family:var(--dis);font-size:28px;color:var(--gold);}
+.stat-lbl{font-size:11px;text-transform:uppercase;letter-spacing:.12em;color:var(--gray);margin-top:4px;}
+
+/* ── SECTION COMMON ── */
+.section{padding:80px 24px;}
+.container{max-width:1000px;margin:0 auto;}
+.sec-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.15em;
+  color:var(--gold);margin-bottom:12px;}
+.sec-title{font-family:var(--dis);font-size:clamp(28px,4vw,44px);margin-bottom:16px;}
+.sec-desc{color:var(--gray);font-size:16px;max-width:560px;line-height:1.7;}
+
+/* ── ABOUT ── */
+#about{background:var(--bg);}
+.about-grid{display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:center;}
+.about-visual{
+  background:linear-gradient(135deg,var(--gold) 0%,#F97316 100%);
+  height:320px;display:flex;align-items:center;justify-content:center;
+  font-family:var(--dis);font-size:80px;color:var(--bg);
+}
+
+/* ── TOKENOMICS ── */
+#tokenomics{background:var(--sur);}
+.toko-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;margin-top:32px;}
+.toko-card{background:var(--raised);border:1.5px solid var(--border);padding:20px;}
+.toko-pct{font-family:var(--dis);font-size:32px;color:var(--gold);}
+.toko-label{font-size:13px;color:var(--gray);margin-top:6px;}
+.dist-bar-wrap{margin-top:32px;}
+.dist-bar{display:flex;height:16px;overflow:hidden;border-radius:2px;}
+.dist-bar span{display:block;transition:width .3s;}
+.dist-legend{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px;}
+.legend-item{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--gray);}
+.legend-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+
+/* ── FEATURES ── */
+#features{background:var(--bg);}
+.feat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;margin-top:32px;}
+.feat-card{background:var(--sur);border:1.5px solid var(--border);padding:24px;transition:border-color .2s;}
+.feat-card:hover{border-color:rgba(245,197,24,.4);}
+.feat-icon{font-size:32px;margin-bottom:14px;}
+.feat-title{font-family:var(--dis);font-size:17px;margin-bottom:8px;}
+.feat-desc{color:var(--gray);font-size:13px;line-height:1.6;}
+
+/* ── ROADMAP ── */
+#roadmap{background:var(--sur);}
+.timeline{position:relative;padding-left:32px;margin-top:32px;}
+.timeline::before{content:'';position:absolute;left:9px;top:0;bottom:0;width:2px;background:var(--border);}
+.tl-item{position:relative;margin-bottom:28px;}
+.tl-dot{position:absolute;left:-27px;top:6px;width:14px;height:14px;border-radius:50%;
+  background:var(--gold);border:2px solid var(--bg);}
+.tl-q{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--gold);margin-bottom:4px;}
+.tl-title{font-family:var(--dis);font-size:17px;margin-bottom:6px;}
+.tl-desc{font-size:13px;color:var(--gray);line-height:1.6;}
+
+/* ── SWAP ── */
+#swap{background:var(--bg);}
+.swap-box{
+  max-width:440px;margin:32px auto 0;
+  background:var(--sur);border:2px solid var(--border);padding:28px;
+}
+.swap-title{font-family:var(--dis);font-size:18px;margin-bottom:20px;text-align:center;}
+.swap-row{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+.swap-input{
+  flex:1;background:var(--raised);border:1.5px solid var(--border);color:var(--white);
+  padding:12px 14px;font-family:var(--body);font-size:16px;outline:none;
+}
+.swap-input:focus{border-color:var(--gold);}
+.swap-token{
+  background:var(--raised);border:1.5px solid var(--border);color:var(--white);
+  padding:10px 14px;font-weight:700;font-size:14px;white-space:nowrap;cursor:pointer;
+}
+.swap-arrow{text-align:center;color:var(--gold);font-size:20px;margin:8px 0;cursor:pointer;}
+.swap-info{font-size:12px;color:var(--gray);margin-bottom:20px;}
+.swap-btn{
+  width:100%;padding:14px;background:var(--gold);color:var(--bg);border:none;
+  font-family:var(--dis);font-size:15px;cursor:pointer;text-transform:uppercase;letter-spacing:.05em;
+  transition:background .2s;
+}
+.swap-btn:hover{background:var(--gold-d);}
+.swap-note{font-size:11px;color:var(--gray);text-align:center;margin-top:12px;}
+.jupiter-btn{
+  display:block;text-align:center;margin-top:12px;padding:10px;
+  background:linear-gradient(135deg,#9945FF,#14F195);color:#fff;
+  font-family:var(--dis);font-size:13px;border:none;cursor:pointer;
+  text-decoration:none;transition:opacity .2s;
+}
+.jupiter-btn:hover{opacity:.85;}
+
+/* ── FOOTER ── */
+footer{
+  background:var(--sur);border-top:2px solid var(--border);
+  padding:40px 24px;text-align:center;
+}
+.footer-name{font-family:var(--dis);font-size:24px;color:var(--gold);margin-bottom:16px;}
+.footer-links{display:flex;justify-content:center;gap:20px;flex-wrap:wrap;margin-bottom:20px;}
+.footer-links a{color:var(--gray);text-decoration:none;font-size:13px;transition:color .2s;}
+.footer-links a:hover{color:var(--gold);}
+.footer-disclaimer{font-size:11px;color:var(--gray);max-width:600px;margin:0 auto;line-height:1.6;}
+
+@media(max-width:700px){
+  .about-grid{grid-template-columns:1fr;}
+  .about-visual{display:none;}
+  nav{padding:14px 20px;}
+  .nav-links{display:none;}
+  .stats-bar{gap:24px;}
+}
+</style>
+</head>
+<body>
+
+<!-- Edit Banner (개발자용) -->
+<div class="edit-banner">
+  ✏️ 편집 모드 — 텍스트를 직접 수정하거나 패널에서 설정하세요
+  <button onclick="toggleEdit()">⚙ 설정 패널</button>
+  <button onclick="hideBanner()">✕ 숨기기</button>
+</div>
+
+<!-- Edit Panel -->
+<div id="editPanel">
+  <div class="ep-title">⚙ 사이트 설정</div>
+  <div class="ep-fg"><label>코인 이름</label><input id="ep_name" value="Moon Doge" oninput="applySettings()"></div>
+  <div class="ep-fg"><label>심볼</label><input id="ep_sym" value="MDOGE" oninput="applySettings()"></div>
+  <div class="ep-fg"><label>태그라인</label><textarea id="ep_tag" oninput="applySettings()">인터넷이 선택한 밈코인 — 달까지 간다!</textarea></div>
+  <div class="ep-fg"><label>총 발행량</label><input id="ep_supply" value="1,000,000,000" oninput="applySettings()"></div>
+  <div class="ep-fg"><label>네트워크</label>
+    <select id="ep_net" onchange="applySettings()">
+      <option>Solana</option><option>Ethereum</option><option>BNB Chain</option><option>Polygon</option>
+    </select>
+  </div>
+  <div class="ep-fg"><label>컨트랙트 / 민트 주소</label><input id="ep_addr" placeholder="주소를 입력하면 스왑 링크에 반영됩니다" oninput="applySettings()"></div>
+  <div class="ep-fg"><label>Twitter URL</label><input id="ep_tw" placeholder="https://twitter.com/..." oninput="applySettings()"></div>
+  <div class="ep-fg"><label>Telegram URL</label><input id="ep_tg" placeholder="https://t.me/..." oninput="applySettings()"></div>
+  <br>
+  <button class="ep-btn" onclick="applySettings()">✓ 적용</button>
+</div>
+
+<!-- NAV -->
+<nav id="mainNav">
+  <div class="nav-logo" id="navLogo">MDOGE</div>
+  <div class="nav-links">
+    <a href="#about">소개</a>
+    <a href="#tokenomics">토크노믹스</a>
+    <a href="#roadmap">로드맵</a>
+    <a href="#swap">구매하기</a>
+  </div>
+  <a href="#swap" class="nav-cta">🚀 구매하기</a>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-bg"></div>
+  <div class="hero-content">
+    <div class="hero-symbol">🪙 <span id="heroSym">MDOGE</span></div>
+    <h1 class="hero-name"><span class="acc" id="heroName">Moon Doge</span></h1>
+    <p class="hero-tagline" id="heroTag">인터넷이 선택한 밈코인 — 달까지 간다!</p>
+    <div class="hero-btns">
+      <a href="#swap" class="btn-hero btn-gold">🚀 지금 구매</a>
+      <a href="whitepaper-generator.html" class="btn-hero btn-outline">📄 백서 보기</a>
+    </div>
+  </div>
+</section>
+
+<!-- STATS -->
+<div class="stats-bar">
+  <div class="stat"><div class="stat-val" id="statSupply">1,000,000,000</div><div class="stat-lbl">총 발행량</div></div>
+  <div class="stat"><div class="stat-val" id="statNet">Solana</div><div class="stat-lbl">네트워크</div></div>
+  <div class="stat"><div class="stat-val">0%</div><div class="stat-lbl">팀 물량</div></div>
+  <div class="stat"><div class="stat-val">100%</div><div class="stat-lbl">유동성 잠금</div></div>
+</div>
+
+<!-- ABOUT -->
+<section class="section" id="about">
+  <div class="container">
+    <div class="about-grid">
+      <div>
+        <div class="sec-label">프로젝트 소개</div>
+        <h2 class="sec-title" contenteditable="true">커뮤니티가 만드는<br>진짜 밈코인</h2>
+        <p class="sec-desc" contenteditable="true">
+          Moon Doge는 Solana 블록체인 위에서 커뮤니티가 이끄는 밈코인입니다.
+          빠른 트랜잭션과 초저렴한 수수료로 누구나 참여할 수 있습니다.
+          우리는 단순한 밈코인을 넘어, 실질적인 DeFi 생태계를 구축합니다.
+        </p>
+        <br>
+        <a href="#swap" class="btn-hero btn-gold" style="font-size:13px;padding:11px 24px">🚀 지금 구매하기</a>
+      </div>
+      <div class="about-visual" id="aboutIcon">🌙</div>
+    </div>
+  </div>
+</section>
+
+<!-- TOKENOMICS -->
+<section class="section" id="tokenomics">
+  <div class="container">
+    <div class="sec-label">토크노믹스</div>
+    <h2 class="sec-title">투명한 토큰 분배</h2>
+    <div class="toko-grid">
+      <div class="toko-card"><div class="toko-pct">40%</div><div class="toko-label">커뮤니티 / 에어드랍</div></div>
+      <div class="toko-card"><div class="toko-pct">25%</div><div class="toko-label">유동성 풀 (잠금)</div></div>
+      <div class="toko-card"><div class="toko-pct">15%</div><div class="toko-label">마케팅</div></div>
+      <div class="toko-card"><div class="toko-pct">10%</div><div class="toko-label">생태계 개발</div></div>
+      <div class="toko-card"><div class="toko-pct">10%</div><div class="toko-label">팀 (12개월 베스팅)</div></div>
+    </div>
+    <div class="dist-bar-wrap">
+      <div class="dist-bar">
+        <span style="width:40%;background:#F5C518"></span>
+        <span style="width:25%;background:#7C3AED"></span>
+        <span style="width:15%;background:#10B981"></span>
+        <span style="width:10%;background:#3B82F6"></span>
+        <span style="width:10%;background:#EF4444"></span>
+      </div>
+      <div class="dist-legend">
+        <div class="legend-item"><div class="legend-dot" style="background:#F5C518"></div>커뮤니티 40%</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#7C3AED"></div>유동성 25%</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#10B981"></div>마케팅 15%</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#3B82F6"></div>개발 10%</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#EF4444"></div>팀 10%</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section class="section" id="features">
+  <div class="container">
+    <div class="sec-label">핵심 기능</div>
+    <h2 class="sec-title">왜 Moon Doge인가?</h2>
+    <div class="feat-grid">
+      <div class="feat-card"><div class="feat-icon">⚡</div><div class="feat-title">초고속 트랜잭션</div>
+        <div class="feat-desc">Solana의 65,000 TPS로 거의 즉각적인 거래 확인, 수수료 $0.001 미만</div></div>
+      <div class="feat-card"><div class="feat-icon">🔒</div><div class="feat-title">유동성 잠금</div>
+        <div class="feat-desc">초기 유동성 100%를 12개월 잠금. 러그풀 없는 안전한 프로젝트</div></div>
+      <div class="feat-card"><div class="feat-icon">🏛</div><div class="feat-title">DAO 거버넌스</div>
+        <div class="feat-desc">토큰 보유자가 직접 프로젝트 방향을 결정하는 탈중앙화 거버넌스</div></div>
+      <div class="feat-card"><div class="feat-icon">💎</div><div class="feat-title">스테이킹 보상</div>
+        <div class="feat-desc">토큰을 스테이킹하여 연간 최대 200% APY의 보상을 받으세요</div></div>
+      <div class="feat-card"><div class="feat-icon">🎨</div><div class="feat-title">NFT 통합</div>
+        <div class="feat-desc">독점 NFT 컬렉션으로 멤버십 혜택과 추가 보상을 제공합니다</div></div>
+      <div class="feat-card"><div class="feat-icon">🔥</div><div class="feat-title">번 메커니즘</div>
+        <div class="feat-desc">모든 거래마다 1%를 자동 소각하여 토큰 희소성을 높입니다</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ROADMAP -->
+<section class="section" id="roadmap">
+  <div class="container">
+    <div class="sec-label">로드맵</div>
+    <h2 class="sec-title">달까지 가는 계획</h2>
+    <div class="timeline">
+      <div class="tl-item"><div class="tl-dot"></div>
+        <div class="tl-q">Q3 2025 — 완료 ✓</div>
+        <div class="tl-title">프로젝트 론칭</div>
+        <div class="tl-desc">토큰 배포, 웹사이트 오픈, 커뮤니티 구축, 첫 번째 에어드랍</div>
+      </div>
+      <div class="tl-item"><div class="tl-dot"></div>
+        <div class="tl-q">Q4 2025 — 진행중</div>
+        <div class="tl-title">DEX 상장 및 마케팅</div>
+        <div class="tl-desc">Raydium 유동성 풀 오픈, CoinGecko/CMC 상장 신청, KOL 마케팅 캠페인</div>
+      </div>
+      <div class="tl-item"><div class="tl-dot" style="background:var(--border)"></div>
+        <div class="tl-q">Q1 2026</div>
+        <div class="tl-title">생태계 확장</div>
+        <div class="tl-desc">NFT 컬렉션 출시, 스테이킹 플랫폼 오픈, 파트너십 체결, CEX 상장 신청</div>
+      </div>
+      <div class="tl-item"><div class="tl-dot" style="background:var(--border)"></div>
+        <div class="tl-q">Q2 2026</div>
+        <div class="tl-title">글로벌 성장</div>
+        <div class="tl-desc">멀티체인 브리지, DAO 거버넌스 출시, 글로벌 마케팅, 대형 CEX 상장</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SWAP / BUY -->
+<section class="section" id="swap">
+  <div class="container">
+    <div class="sec-label">구매하기</div>
+    <h2 class="sec-title">지금 바로 구매</h2>
+    <p class="sec-desc">DEX에서 직접 스왑하거나 아래 링크를 이용하세요</p>
+
+    <div class="swap-box">
+      <div class="swap-title">빠른 스왑 계산기</div>
+      <div class="swap-row">
+        <input class="swap-input" type="number" id="swapIn" value="1" oninput="calcSwap()">
+        <div class="swap-token">SOL</div>
+      </div>
+      <div class="swap-arrow" onclick="flipSwap()">⇅</div>
+      <div class="swap-row">
+        <input class="swap-input" type="number" id="swapOut" readonly>
+        <div class="swap-token" id="swapOutToken">MDOGE</div>
+      </div>
+      <div class="swap-info">1 SOL ≈ <span id="swapRate">1,000,000</span> <span id="rateToken">MDOGE</span> (예상, 실제 가격은 DEX 참고)</div>
+      <a id="jupiterLink" href="https://jup.ag/swap/SOL-MDOGE" target="_blank" class="jupiter-btn">
+        ◎ &nbsp; Jupiter에서 스왑하기 (Solana)
+      </a>
+      <a id="raydiumLink" href="https://raydium.io/swap/" target="_blank" class="jupiter-btn" style="background:linear-gradient(135deg,#9945FF,#19FBEF);margin-top:8px">
+        ⚡ &nbsp; Raydium에서 스왑하기
+      </a>
+      <div class="swap-note">DEX 거래 시 슬리피지에 주의하세요. 직접 컨트랙트 주소를 확인하세요.</div>
+    </div>
+
+    <div style="text-align:center;margin-top:20px;font-size:13px;color:var(--gray)">
+      공식 컨트랙트 주소: <span id="contractAddr" style="font-family:monospace;color:var(--gold)">배포 후 주소가 표시됩니다</span>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-name" id="footerName">🌙 Moon Doge (MDOGE)</div>
+  <div class="footer-links">
+    <a href="#" id="ftw">Twitter/X</a>
+    <a href="#" id="ftg">Telegram</a>
+    <a href="whitepaper-generator.html">백서</a>
+    <a href="coin-creator.html">코인 만들기</a>
+    <a href="listing-kit.html">상장 키트</a>
+  </div>
+  <div class="footer-disclaimer">
+    이 페이지는 정보 제공 목적으로만 작성되었습니다. 암호화폐 투자에는 높은 위험이 따르며
+    투자 원금의 일부 또는 전부를 잃을 수 있습니다. 투자 결정은 본인의 판단에 따르세요.
+  </div>
+</footer>
+
+<script>
+// ── Edit panel ──
+function toggleEdit(){document.getElementById('editPanel').classList.toggle('open');}
+function hideBanner(){document.querySelector('.edit-banner').style.display='none';}
+
+function applySettings(){
+  const name   = document.getElementById('ep_name').value||'Coin';
+  const sym    = document.getElementById('ep_sym').value||'COIN';
+  const tag    = document.getElementById('ep_tag').value||'';
+  const supply = document.getElementById('ep_supply').value||'';
+  const net    = document.getElementById('ep_net').value||'Solana';
+  const addr   = document.getElementById('ep_addr').value||'';
+  const tw     = document.getElementById('ep_tw').value||'#';
+  const tg     = document.getElementById('ep_tg').value||'#';
+
+  document.getElementById('pageTitle').textContent   = name + ' (' + sym + ') — Official';
+  document.getElementById('heroName').textContent    = name;
+  document.getElementById('heroSym').textContent     = sym;
+  document.getElementById('heroTag').textContent     = tag;
+  document.getElementById('navLogo').textContent     = sym;
+  document.getElementById('statSupply').textContent  = supply;
+  document.getElementById('statNet').textContent     = net;
+  document.getElementById('footerName').textContent  = '🌙 ' + name + ' (' + sym + ')';
+  document.getElementById('swapOutToken').textContent= sym;
+  document.getElementById('rateToken').textContent   = sym;
+  document.getElementById('ftw').href = tw;
+  document.getElementById('ftg').href = tg;
+
+  if(addr){
+    document.getElementById('contractAddr').textContent = addr;
+    // Update Jupiter/Raydium links with mint address
+    document.getElementById('jupiterLink').href = 'https://jup.ag/swap/SOL-' + addr;
+    document.getElementById('raydiumLink').href = 'https://raydium.io/swap/?inputCurrency=sol&outputCurrency=' + addr;
+  } else {
+    document.getElementById('contractAddr').textContent = '배포 후 주소가 표시됩니다';
+  }
+}
+
+// ── Swap calculator ──
+let rate = 1000000;
+function calcSwap(){
+  const inVal = parseFloat(document.getElementById('swapIn').value)||0;
+  document.getElementById('swapOut').value = (inVal * rate).toLocaleString();
+}
+function flipSwap(){
+  const a = document.getElementById('swapIn').value;
+  const b = document.getElementById('swapOut').value;
+  document.getElementById('swapIn').value  = b.replace(/,/g,'');
+  document.getElementById('swapOut').value = a;
+  rate = 1 / rate;
+  document.getElementById('swapRate').textContent = rate.toLocaleString();
+}
+calcSwap();
+
+// ── Sticky nav ──
+window.addEventListener('scroll', ()=>{
+  const nav = document.getElementById('mainNav');
+  nav.style.background = window.scrollY > 60 ? 'rgba(8,8,15,.97)' : 'rgba(8,8,15,.9)';
+});
+</script>
+</body>
+</html>

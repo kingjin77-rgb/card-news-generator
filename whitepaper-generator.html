@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>코인 백서 생성기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Grotesk:wght@400;500;600;700&family=Merriweather:wght@300;400;700&display=swap" rel="stylesheet">
+<style>
+/* ── Editor (dark) ── */
+:root {
+  --bg:#08080F; --sur:#12121C; --raised:#1C1C2A;
+  --gold:#F5C518; --gold-d:#CFA010;
+  --white:#F1F5F9; --gray:#94A3B8; --border:#252535;
+  --dis:'Archivo Black',sans-serif; --body:'Space Grotesk',sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:var(--body);background:var(--bg);color:var(--white);min-height:100vh;}
+
+.hdr{border-bottom:2px solid var(--border);padding:16px 28px;display:flex;align-items:center;gap:12px;
+  position:sticky;top:0;z-index:200;background:rgba(8,8,15,.97);backdrop-filter:blur(10px);}
+.logo{font-family:var(--dis);font-size:19px;letter-spacing:-.02em;}
+.logo .c{color:var(--gold);}
+.badge{background:linear-gradient(135deg,#7C3AED,#A78BFA);font-size:10px;font-weight:700;
+  text-transform:uppercase;letter-spacing:.12em;padding:3px 9px;border-radius:2px;}
+.hdr-actions{margin-left:auto;display:flex;gap:10px;}
+
+/* ── Layout ── */
+.shell{display:grid;grid-template-columns:400px 1fr;min-height:calc(100vh - 57px);}
+.editor{border-right:2px solid var(--border);padding:24px 20px;overflow-y:auto;max-height:calc(100vh - 57px);}
+.preview-pane{overflow-y:auto;max-height:calc(100vh - 57px);background:#fff;}
+
+/* ── Editor form ── */
+.sec-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.14em;
+  color:var(--gold);margin:20px 0 12px;display:flex;align-items:center;gap:8px;}
+.sec-title::after{content:'';flex:1;height:1px;background:var(--border);}
+.fg{display:flex;flex-direction:column;gap:6px;margin-bottom:12px;}
+label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--gray);}
+input,textarea,select{background:var(--sur);border:1.5px solid var(--border);color:var(--white);
+  padding:9px 12px;font-family:var(--body);font-size:13px;width:100%;outline:none;transition:border-color .2s;}
+input:focus,textarea:focus,select:focus{border-color:var(--gold);}
+input::placeholder,textarea::placeholder{color:#4A5568;}
+textarea{resize:vertical;min-height:60px;}
+select option{background:var(--raised);}
+
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+
+/* Token dist table */
+.dist-table{width:100%;border-collapse:collapse;margin-top:8px;}
+.dist-table th{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:var(--gray);
+  padding:6px 8px;text-align:left;border-bottom:1px solid var(--border);}
+.dist-table td{padding:5px 8px;}
+.dist-table input{padding:5px 8px;font-size:12px;}
+.dist-table .pct{width:60px;}
+.dist-add{background:none;border:1px dashed var(--border);color:var(--gray);padding:6px;
+  width:100%;cursor:pointer;font-size:12px;margin-top:6px;transition:all .2s;}
+.dist-add:hover{border-color:var(--gold);color:var(--gold);}
+.dist-del{background:none;border:none;color:#EF4444;cursor:pointer;padding:2px 6px;font-size:14px;}
+
+/* Roadmap */
+.rm-item{background:var(--raised);border:1px solid var(--border);padding:10px;margin-bottom:8px;}
+.rm-row{display:grid;grid-template-columns:80px 1fr;gap:8px;margin-bottom:6px;}
+
+/* Buttons */
+.btn{padding:10px 22px;font-family:var(--dis);font-size:13px;border:none;cursor:pointer;
+  transition:all .2s;text-transform:uppercase;letter-spacing:.05em;display:inline-flex;align-items:center;gap:6px;}
+.btn-primary{background:var(--gold);color:var(--bg);}
+.btn-primary:hover{background:var(--gold-d);}
+.btn-ghost{background:transparent;color:var(--white);border:1.5px solid var(--border);}
+.btn-ghost:hover{border-color:var(--white);}
+.btn-sm{padding:6px 14px;font-size:11px;}
+
+/* ════════════════════════════════════════
+   WHITEPAPER PREVIEW (light, print-ready)
+════════════════════════════════════════ */
+#wp{
+  font-family:'Merriweather','Georgia',serif;
+  color:#111; background:#fff;
+  padding:60px 70px; max-width:900px; margin:0 auto;
+  line-height:1.8; font-size:14px;
+}
+
+/* Cover */
+#wp .cover{
+  min-height:520px; display:flex; flex-direction:column;
+  justify-content:center; border-bottom:4px solid #111;
+  padding-bottom:48px; margin-bottom:60px;
+}
+#wp .cover-badge{
+  font-family:'Space Grotesk',sans-serif; font-size:11px;
+  font-weight:700; text-transform:uppercase; letter-spacing:.15em;
+  color:#888; margin-bottom:24px;
+}
+#wp .cover-name{
+  font-family:'Archivo Black',sans-serif; font-size:clamp(40px,6vw,72px);
+  line-height:1; color:#111; margin-bottom:8px;
+}
+#wp .cover-name .accent{color:#F5C518;}
+#wp .cover-tagline{
+  font-family:'Space Grotesk',sans-serif; font-size:20px;
+  color:#444; margin-bottom:32px; font-weight:400;
+}
+#wp .cover-meta{
+  display:grid; grid-template-columns:repeat(3,1fr); gap:16px;
+  margin-top:32px;
+}
+#wp .cover-meta-item label{
+  display:block; font-size:10px; text-transform:uppercase; letter-spacing:.12em;
+  color:#888; margin-bottom:4px; font-family:'Space Grotesk',sans-serif; font-weight:700;
+}
+#wp .cover-meta-item span{
+  font-size:18px; font-weight:700; font-family:'Space Grotesk',sans-serif; color:#111;
+}
+#wp .cover-disclaimer{
+  font-size:11px; color:#999; margin-top:32px; line-height:1.5;
+  font-family:'Space Grotesk',sans-serif;
+}
+
+/* Section structure */
+#wp .wp-section{margin-bottom:52px;}
+#wp .wp-section-num{
+  font-family:'Space Grotesk',sans-serif; font-size:11px; font-weight:700;
+  text-transform:uppercase; letter-spacing:.15em; color:#F5C518; margin-bottom:8px;
+}
+#wp h2{
+  font-family:'Archivo Black',sans-serif; font-size:26px; color:#111;
+  border-bottom:2px solid #111; padding-bottom:10px; margin-bottom:24px;
+}
+#wp h3{
+  font-family:'Space Grotesk',sans-serif; font-size:16px; font-weight:700;
+  color:#111; margin:24px 0 10px;
+}
+#wp p{margin-bottom:14px; color:#333;}
+#wp ul{margin:10px 0 14px 24px;}
+#wp ul li{margin-bottom:6px; color:#333;}
+
+/* Tokenomics table */
+#wp .token-table{width:100%;border-collapse:collapse;margin:16px 0;}
+#wp .token-table th{
+  background:#111; color:#fff; font-family:'Space Grotesk',sans-serif;
+  font-size:11px; text-transform:uppercase; letter-spacing:.1em;
+  padding:10px 14px; text-align:left;
+}
+#wp .token-table td{padding:10px 14px;border-bottom:1px solid #E5E5E5;font-family:'Space Grotesk',sans-serif;font-size:13px;}
+#wp .token-table tr:last-child td{border-bottom:none;}
+#wp .token-table tr:nth-child(even) td{background:#F9F9F9;}
+
+/* Donut-style bar */
+#wp .dist-bar{display:flex;height:20px;border-radius:3px;overflow:hidden;margin:12px 0 20px;}
+#wp .dist-bar span{display:block;transition:width .3s;}
+
+/* Roadmap timeline */
+#wp .timeline{position:relative;padding-left:28px;margin-top:12px;}
+#wp .timeline::before{content:'';position:absolute;left:7px;top:0;bottom:0;width:2px;background:#E5E5E5;}
+#wp .tl-item{position:relative;margin-bottom:24px;}
+#wp .tl-item::before{
+  content:''; position:absolute; left:-25px; top:5px;
+  width:12px; height:12px; border-radius:50%;
+  background:#F5C518; border:2px solid #111;
+}
+#wp .tl-q{font-family:'Space Grotesk',sans-serif;font-size:11px;font-weight:700;
+  text-transform:uppercase;letter-spacing:.1em;color:#F5C518;margin-bottom:4px;}
+#wp .tl-title{font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:15px;color:#111;margin-bottom:4px;}
+#wp .tl-desc{font-size:13px;color:#555;}
+
+/* Page number footer */
+#wp .wp-footer{
+  margin-top:60px; padding-top:20px; border-top:1px solid #E5E5E5;
+  font-family:'Space Grotesk',sans-serif; font-size:11px; color:#aaa;
+  display:flex; justify-content:space-between;
+}
+
+/* Print */
+@media print{
+  .hdr,.editor,.hdr-actions{display:none !important;}
+  .shell{display:block;}
+  .preview-pane{max-height:none;overflow:visible;}
+  #wp{padding:40px 50px;}
+}
+@media(max-width:800px){
+  .shell{grid-template-columns:1fr;}
+  .editor{max-height:none;border-right:none;border-bottom:2px solid var(--border);}
+  .preview-pane{max-height:none;}
+}
+</style>
+</head>
+<body>
+
+<header class="hdr">
+  <div class="logo"><span class="c">백서</span> 생성기</div>
+  <div class="badge">Whitepaper Generator</div>
+  <div class="hdr-actions">
+    <button class="btn btn-ghost btn-sm" onclick="refreshPreview()">🔄 미리보기 갱신</button>
+    <button class="btn btn-primary btn-sm" onclick="printWP()">🖨️ PDF 저장</button>
+  </div>
+</header>
+
+<div class="shell">
+
+<!-- ── Editor ── -->
+<aside class="editor">
+
+  <!-- 기본 정보 -->
+  <div class="sec-title">프로젝트 기본 정보</div>
+  <div class="fg"><label>프로젝트 이름 *</label><input id="pName" placeholder="Moon Doge" oninput="live()"></div>
+  <div class="fg"><label>태그라인 (한 줄 슬로건)</label><input id="pTag" placeholder="인터넷이 선택한 밈코인" oninput="live()"></div>
+  <div class="row2">
+    <div class="fg"><label>토큰 심볼</label><input id="pSym" placeholder="MDOGE" oninput="live()" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase();live()"></div>
+    <div class="fg"><label>네트워크</label>
+      <select id="pNet" onchange="live()">
+        <option>Solana</option><option>Ethereum</option><option>BNB Chain</option>
+        <option>Polygon</option><option>Base</option><option>Arbitrum</option>
+      </select>
+    </div>
+  </div>
+  <div class="fg"><label>총 발행량</label><input id="pSupply" placeholder="1,000,000,000" oninput="live()"></div>
+  <div class="fg"><label>웹사이트 URL</label><input id="pWeb" placeholder="https://moondoge.io" oninput="live()"></div>
+  <div class="fg"><label>발행일 / 버전</label><input id="pDate" placeholder="2025년 6월" oninput="live()"></div>
+
+  <!-- 개요 -->
+  <div class="sec-title">프로젝트 개요</div>
+  <div class="fg"><label>Executive Summary (소개 / 비전)</label>
+    <textarea id="pAbstract" rows="4" oninput="live()" placeholder="이 프로젝트는 무엇이며 왜 만들었는지 2~3문장으로..."></textarea></div>
+  <div class="fg"><label>해결하는 문제</label>
+    <textarea id="pProblem" rows="3" oninput="live()" placeholder="기존 시장의 어떤 문제를 해결하는가..."></textarea></div>
+  <div class="fg"><label>솔루션 / 차별점</label>
+    <textarea id="pSolution" rows="3" oninput="live()" placeholder="우리 프로젝트만의 해결책과 특징..."></textarea></div>
+
+  <!-- 기술 -->
+  <div class="sec-title">기술 및 생태계</div>
+  <div class="fg"><label>기술 설명</label>
+    <textarea id="pTech" rows="4" oninput="live()" placeholder="사용 블록체인, 스마트컨트랙트 특징, 보안 감사 계획 등..."></textarea></div>
+  <div class="fg"><label>핵심 기능 (줄 바꿈으로 구분)</label>
+    <textarea id="pFeatures" rows="4" oninput="live()" placeholder="커뮤니티 거버넌스&#10;스테이킹 보상&#10;NFT 통합&#10;멀티체인 지원"></textarea></div>
+
+  <!-- 토크노믹스 -->
+  <div class="sec-title">토크노믹스 (토큰 분배)</div>
+  <table class="dist-table" id="distTable">
+    <thead><tr><th>항목</th><th>비율(%)</th><th>물량</th><th></th></tr></thead>
+    <tbody id="distBody"></tbody>
+  </table>
+  <button class="dist-add" onclick="addDist()">+ 항목 추가</button>
+
+  <!-- 로드맵 -->
+  <div class="sec-title">로드맵</div>
+  <div id="rmList"></div>
+  <button class="dist-add" onclick="addRm()">+ 단계 추가</button>
+
+  <!-- 팀 -->
+  <div class="sec-title">팀 / 파트너십</div>
+  <div class="fg"><label>팀 소개</label>
+    <textarea id="pTeam" rows="3" oninput="live()" placeholder="익명 개발팀, 커뮤니티 주도 프로젝트 등..."></textarea></div>
+  <div class="fg"><label>파트너십 / 협력사</label>
+    <textarea id="pPartners" rows="2" oninput="live()" placeholder="협력 중인 거래소, 프로토콜, 마케팅 파트너..."></textarea></div>
+
+  <!-- 법적 고지 -->
+  <div class="sec-title">법적 고지 (면책조항)</div>
+  <div class="fg"><label>추가 면책 내용</label>
+    <textarea id="pDisclaimer" rows="3" oninput="live()" placeholder="이 문서는 투자 권유가 아닙니다..."></textarea></div>
+
+  <br>
+  <button class="btn btn-primary" style="width:100%" onclick="refreshPreview()">🔄 백서 미리보기 갱신</button>
+  <br><br>
+  <button class="btn btn-ghost" style="width:100%" onclick="printWP()">🖨️ PDF로 저장 (Ctrl+P)</button>
+  <br><br>
+</aside>
+
+<!-- ── Preview ── -->
+<div class="preview-pane">
+  <div id="wp">
+    <!-- dynamically generated -->
+  </div>
+</div>
+
+</div><!-- /.shell -->
+
+<script>
+// ─────────────────────────────────────
+// Distribution rows
+// ─────────────────────────────────────
+const DIST_COLORS = [
+  '#F5C518','#7C3AED','#10B981','#EF4444','#3B82F6',
+  '#F97316','#EC4899','#06B6D4','#84CC16','#8B5CF6'
+];
+
+let distRows = [
+  { label:'커뮤니티 / 에어드랍', pct:40 },
+  { label:'유동성 풀',           pct:25 },
+  { label:'마케팅',              pct:15 },
+  { label:'팀 (베스팅 12개월)',  pct:10 },
+  { label:'생태계 개발',         pct:10 },
+];
+
+function renderDistTable() {
+  const tbody = document.getElementById('distBody');
+  const supply = document.getElementById('pSupply').value.replace(/[^0-9]/g,'') || '1000000000';
+  const total  = parseInt(supply) || 1000000000;
+  tbody.innerHTML = distRows.map((r,i) => `
+    <tr>
+      <td><input value="${r.label}" oninput="distRows[${i}].label=this.value;live()" style="background:transparent;border:none;border-bottom:1px solid #333;color:#fff;padding:2px 4px;width:100%"></td>
+      <td><input class="pct" type="number" value="${r.pct}" min="0" max="100" oninput="distRows[${i}].pct=+this.value;live()" style="background:transparent;border:none;border-bottom:1px solid #333;color:#fff;padding:2px 4px"></td>
+      <td style="font-size:11px;color:#94A3B8">${Math.round(total*r.pct/100).toLocaleString()}</td>
+      <td><button class="dist-del" onclick="distRows.splice(${i},1);renderDistTable();live()">✕</button></td>
+    </tr>`).join('');
+}
+
+function addDist() {
+  distRows.push({ label:'신규 항목', pct:5 });
+  renderDistTable(); live();
+}
+
+// ─────────────────────────────────────
+// Roadmap rows
+// ─────────────────────────────────────
+let rmRows = [
+  { q:'Q3 2025', title:'프로젝트 론칭', desc:'토큰 배포, 커뮤니티 구축, 첫 번째 에어드랍' },
+  { q:'Q4 2025', title:'거래소 상장',   desc:'DEX 유동성 공급, CEX 상장 신청, 마케팅 캠페인' },
+  { q:'Q1 2026', title:'생태계 확장',   desc:'NFT 컬렉션 출시, 스테이킹 기능, 파트너십 체결' },
+  { q:'Q2 2026', title:'글로벌 성장',   desc:'멀티체인 브리지, DAO 거버넌스, 글로벌 마케팅' },
+];
+
+function renderRmList() {
+  const el = document.getElementById('rmList');
+  el.innerHTML = rmRows.map((r,i) => `
+    <div class="rm-item">
+      <div class="rm-row">
+        <div class="fg" style="margin:0"><label>분기</label>
+          <input value="${r.q}" oninput="rmRows[${i}].q=this.value;live()" placeholder="Q1 2025"></div>
+        <div class="fg" style="margin:0"><label>제목</label>
+          <input value="${r.title}" oninput="rmRows[${i}].title=this.value;live()" placeholder="단계 제목"></div>
+      </div>
+      <div class="fg" style="margin:0"><label>설명</label>
+        <textarea oninput="rmRows[${i}].desc=this.value;live()" rows="2" style="min-height:0">${r.desc}</textarea></div>
+      <button class="dist-del" onclick="rmRows.splice(${i},1);renderRmList();live()" style="margin-top:6px">✕ 삭제</button>
+    </div>`).join('');
+}
+
+function addRm() {
+  rmRows.push({ q:'Q? 20??', title:'새 단계', desc:'설명 입력...' });
+  renderRmList(); live();
+}
+
+// ─────────────────────────────────────
+// Whitepaper generation
+// ─────────────────────────────────────
+function v(id) { return (document.getElementById(id)||{}).value || ''; }
+
+function buildWP() {
+  const name     = v('pName')     || '프로젝트명';
+  const tag      = v('pTag')      || '최고의 밈코인';
+  const sym      = v('pSym')      || 'TOKEN';
+  const net      = v('pNet')      || 'Solana';
+  const supply   = v('pSupply')   || '1,000,000,000';
+  const web      = v('pWeb')      || '';
+  const date     = v('pDate')     || new Date().getFullYear() + '년';
+  const abstract = v('pAbstract') || '';
+  const problem  = v('pProblem')  || '';
+  const solution = v('pSolution') || '';
+  const tech     = v('pTech')     || '';
+  const feats    = v('pFeatures');
+  const team     = v('pTeam')     || '';
+  const partners = v('pPartners') || '';
+  const addDisc  = v('pDisclaimer') || '';
+
+  const featList = feats
+    ? '<ul>' + feats.split('\n').filter(l=>l.trim()).map(l=>`<li>${esc(l)}</li>`).join('') + '</ul>'
+    : '';
+
+  // Tokenomics
+  const total = parseInt(supply.replace(/[^0-9]/g,'')) || 1000000000;
+  const distTrValid = distRows.filter(r=>r.pct>0);
+  const totalPct = distTrValid.reduce((s,r)=>s+r.pct,0);
+  const tokenTable = `
+    <table class="token-table">
+      <thead><tr><th>분류</th><th>비율</th><th>물량</th></tr></thead>
+      <tbody>${distTrValid.map(r=>`
+        <tr><td>${esc(r.label)}</td>
+            <td>${r.pct}%</td>
+            <td>${Math.round(total*r.pct/100).toLocaleString()} ${esc(sym)}</td></tr>`).join('')}
+        <tr><td><strong>합계</strong></td>
+            <td><strong>${totalPct}%</strong></td>
+            <td><strong>${total.toLocaleString()} ${esc(sym)}</strong></td></tr>
+      </tbody>
+    </table>`;
+
+  const barSegs = distTrValid.map((r,i) =>
+    `<span title="${esc(r.label)} ${r.pct}%" style="width:${r.pct}%;background:${DIST_COLORS[i%DIST_COLORS.length]}"></span>`
+  ).join('');
+  const legend = distTrValid.map((r,i) =>
+    `<span style="display:inline-flex;align-items:center;gap:5px;margin:3px 8px 3px 0;font-family:'Space Grotesk',sans-serif;font-size:12px;color:#333">
+      <span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${DIST_COLORS[i%DIST_COLORS.length]}"></span>${esc(r.label)} ${r.pct}%
+    </span>`).join('');
+
+  // Roadmap
+  const timeline = rmRows.map(r => `
+    <div class="tl-item">
+      <div class="tl-q">${esc(r.q)}</div>
+      <div class="tl-title">${esc(r.title)}</div>
+      <div class="tl-desc">${esc(r.desc)}</div>
+    </div>`).join('');
+
+  const disclaimer = `이 백서는 정보 제공 목적으로만 작성되었으며, 투자 권유나 금융 조언을 구성하지 않습니다.
+암호화폐 투자에는 높은 위험이 따르며, 투자 원금의 일부 또는 전부를 잃을 수 있습니다.
+본 문서에 기술된 내용은 사전 예고 없이 변경될 수 있습니다. ${addDisc}`.trim();
+
+  return `
+<div class="cover">
+  <div class="cover-badge">White Paper · ${esc(date)}</div>
+  <div class="cover-name"><span class="accent">${esc(name)}</span> (${esc(sym)})</div>
+  <div class="cover-tagline">${esc(tag)}</div>
+  ${web ? `<div style="font-family:'Space Grotesk',sans-serif;font-size:13px;color:#888">${esc(web)}</div>` : ''}
+  <div class="cover-meta">
+    <div class="cover-meta-item"><label>심볼</label><span>${esc(sym)}</span></div>
+    <div class="cover-meta-item"><label>네트워크</label><span>${esc(net)}</span></div>
+    <div class="cover-meta-item"><label>총 발행량</label><span>${esc(supply)}</span></div>
+  </div>
+  <div class="cover-disclaimer">
+    ⚠ 이 문서는 투자 권유가 아닙니다. 암호화폐 투자에는 리스크가 따릅니다.
+  </div>
+</div>
+
+<div class="wp-section">
+  <div class="wp-section-num">Section 01</div>
+  <h2>Executive Summary</h2>
+  ${abstract ? `<p>${esc(abstract)}</p>` : '<p>프로젝트 소개를 입력하세요.</p>'}
+</div>
+
+<div class="wp-section">
+  <div class="wp-section-num">Section 02</div>
+  <h2>문제 및 솔루션</h2>
+  ${problem ? `<h3>문제점</h3><p>${esc(problem)}</p>` : ''}
+  ${solution ? `<h3>솔루션</h3><p>${esc(solution)}</p>` : ''}
+</div>
+
+<div class="wp-section">
+  <div class="wp-section-num">Section 03</div>
+  <h2>기술 및 생태계</h2>
+  ${tech ? `<p>${esc(tech)}</p>` : ''}
+  ${featList ? `<h3>핵심 기능</h3>${featList}` : ''}
+</div>
+
+<div class="wp-section">
+  <div class="wp-section-num">Section 04</div>
+  <h2>토크노믹스</h2>
+  <h3>토큰 정보</h3>
+  <ul>
+    <li><strong>토큰 이름:</strong> ${esc(name)} (${esc(sym)})</li>
+    <li><strong>네트워크:</strong> ${esc(net)}</li>
+    <li><strong>총 발행량:</strong> ${esc(supply)} ${esc(sym)}</li>
+  </ul>
+  <h3>토큰 분배</h3>
+  <div class="dist-bar">${barSegs}</div>
+  <div style="margin-bottom:16px">${legend}</div>
+  ${tokenTable}
+</div>
+
+<div class="wp-section">
+  <div class="wp-section-num">Section 05</div>
+  <h2>로드맵</h2>
+  <div class="timeline">${timeline}</div>
+</div>
+
+<div class="wp-section">
+  <div class="wp-section-num">Section 06</div>
+  <h2>팀 및 파트너십</h2>
+  ${team ? `<h3>팀</h3><p>${esc(team)}</p>` : ''}
+  ${partners ? `<h3>파트너십</h3><p>${esc(partners)}</p>` : ''}
+</div>
+
+<div class="wp-section">
+  <div class="wp-section-num">Section 07</div>
+  <h2>법적 고지 및 면책조항</h2>
+  <p>${esc(disclaimer)}</p>
+</div>
+
+<div class="wp-footer">
+  <span>${esc(name)} (${esc(sym)}) — ${esc(date)}</span>
+  <span>${web ? esc(web) : ''}</span>
+</div>`;
+}
+
+function esc(s) {
+  return String(s||'')
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/\n/g,'<br>');
+}
+
+function refreshPreview() {
+  document.getElementById('wp').innerHTML = buildWP();
+}
+
+let _liveTimer = null;
+function live() {
+  clearTimeout(_liveTimer);
+  _liveTimer = setTimeout(refreshPreview, 300);
+}
+
+function printWP() {
+  refreshPreview();
+  setTimeout(() => window.print(), 200);
+}
+
+// ─────────────────────────────────────
+// Init
+// ─────────────────────────────────────
+renderDistTable();
+renderRmList();
+refreshPreview();
+
+// Preset data for demo
+document.getElementById('pName').value    = 'Moon Doge';
+document.getElementById('pTag').value     = '인터넷이 선택한 밈코인, 달까지 간다!';
+document.getElementById('pSym').value     = 'MDOGE';
+document.getElementById('pNet').value     = 'Solana';
+document.getElementById('pSupply').value  = '1,000,000,000';
+document.getElementById('pWeb').value     = 'https://moondoge.io';
+document.getElementById('pDate').value    = '2025년 Q3';
+document.getElementById('pAbstract').value =
+  'Moon Doge(MDOGE)는 Solana 블록체인 위에서 커뮤니티가 이끄는 밈코인 프로젝트입니다. ' +
+  '빠른 트랜잭션 속도와 초저렴한 수수료를 바탕으로, 전 세계 암호화폐 커뮤니티에게 즐거움과 보상을 제공합니다. ' +
+  '우리는 단순한 밈코인을 넘어, 실용적인 DeFi 생태계를 구축하는 것을 목표로 합니다.';
+document.getElementById('pProblem').value =
+  '기존 밈코인 시장은 투명성 부족, 개발팀 러그풀 위험, 실질적 유틸리티 부재라는 문제를 안고 있습니다. ' +
+  '대부분의 밈코인은 단순한 투기 수단에 불과하며, 장기 보유자에게 아무런 보상이 없습니다.';
+document.getElementById('pSolution').value =
+  'Moon Doge는 완전한 온체인 투명성, 스테이킹 보상, NFT 통합, 그리고 DAO 거버넌스를 통해 ' +
+  '커뮤니티가 직접 프로젝트 방향을 결정하는 진정한 탈중앙화 밈코인입니다.';
+document.getElementById('pTech').value =
+  'Solana의 Proof of History(PoH) 합의 메커니즘을 활용하여 초당 65,000건의 트랜잭션 처리가 가능합니다. ' +
+  '스마트컨트랙트는 Anchor 프레임워크로 개발되었으며, 출시 전 제3자 보안 감사를 완료할 예정입니다. ' +
+  '유동성은 Raydium 및 Orca DEX에 잠금 처리되어 안전성을 보장합니다.';
+document.getElementById('pFeatures').value =
+  '커뮤니티 스테이킹 — 연 APY 최대 200%\nNFT 컬렉션 — 멤버십 혜택 제공\nDAO 거버넌스 — 토큰 보유자 투표권\n멀티체인 브리지 — Ethereum 연동 예정\n번 메커니즘 — 거래마다 1% 소각';
+document.getElementById('pTeam').value =
+  '6명의 익명 개발자로 구성된 팀으로, DeFi 및 NFT 분야에서 평균 5년 이상의 경력을 보유합니다. ' +
+  '커뮤니티 주도 프로젝트로, 주요 결정은 DAO 투표를 통해 이루어집니다.';
+document.getElementById('pPartners').value =
+  'Raydium DEX, Orca DEX, Solana Foundation, CoinGecko, CMC 등과 협력 중';
+refreshPreview();
+</script>
+</body>
+</html>

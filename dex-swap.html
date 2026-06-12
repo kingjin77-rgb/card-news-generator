@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>비상장 코인 DEX 스왑</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.ethers.io/lib/ethers-5.7.umd.min.js"></script>
+<script src="https://unpkg.com/@solana/web3.js@1.87.6/lib/index.iife.min.js"></script>
+<style>
+:root{
+  --bg:#08080F;--sur:#12121C;--raised:#1C1C2A;
+  --gold:#F5C518;--gold-d:#CFA010;--purple:#7C3AED;
+  --green:#10B981;--red:#EF4444;--blue:#3B82F6;
+  --white:#F1F5F9;--gray:#94A3B8;--border:#252535;
+  --dis:'Archivo Black',sans-serif;--body:'Space Grotesk',sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:var(--body);background:var(--bg);color:var(--white);min-height:100vh;}
+
+.hdr{border-bottom:2px solid var(--border);padding:16px 28px;display:flex;align-items:center;gap:12px;
+  position:sticky;top:0;z-index:100;background:rgba(8,8,15,.97);}
+.logo{font-family:var(--dis);font-size:19px;}.logo .c{color:var(--gold);}
+.badge{background:linear-gradient(135deg,#7C3AED,#A78BFA);font-size:10px;font-weight:700;
+  text-transform:uppercase;letter-spacing:.12em;padding:3px 9px;border-radius:2px;}
+
+.main{max-width:1100px;margin:0 auto;padding:40px 20px 80px;
+  display:grid;grid-template-columns:1fr 380px;gap:28px;align-items:start;}
+
+/* ── INFO panel (left) ── */
+.info-panel{}
+.panel-title{font-family:var(--dis);font-size:22px;margin-bottom:20px;}
+.how-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:28px;}
+.how-card{background:var(--sur);border:1.5px solid var(--border);padding:18px;}
+.how-num{font-family:var(--dis);font-size:28px;color:var(--gold);margin-bottom:8px;}
+.how-title{font-weight:700;font-size:14px;margin-bottom:6px;}
+.how-desc{font-size:12px;color:var(--gray);line-height:1.5;}
+
+/* ── DEX options ── */
+.dex-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;
+  color:var(--gold);margin-bottom:12px;display:flex;align-items:center;gap:8px;}
+.dex-title::after{content:'';flex:1;height:1px;background:var(--border);}
+.dex-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;margin-bottom:28px;}
+.dex-card{
+  background:var(--sur);border:1.5px solid var(--border);padding:16px;
+  display:flex;flex-direction:column;gap:6px;transition:border-color .2s;
+}
+.dex-card:hover{border-color:var(--gold);}
+.dex-chain{font-size:10px;text-transform:uppercase;letter-spacing:.1em;font-weight:700;}
+.dex-chain.sol{color:#14F195;}.dex-chain.evm{color:#A78BFA;}.dex-chain.bsc{color:#F0B90B;}
+.dex-name{font-family:var(--dis);font-size:15px;}
+.dex-desc{font-size:11px;color:var(--gray);line-height:1.4;}
+.dex-open{
+  display:block;padding:7px;background:none;border:1px solid var(--border);
+  color:var(--gold);text-decoration:none;font-size:11px;font-weight:700;text-align:center;
+  text-transform:uppercase;letter-spacing:.08em;transition:all .2s;cursor:pointer;margin-top:auto;
+}
+.dex-open:hover{background:var(--gold);color:var(--bg);}
+
+/* ── Alert box ── */
+.alert{padding:12px 16px;font-size:13px;border-left:3px solid;margin-bottom:16px;line-height:1.6;}
+.alert-gold{background:rgba(245,197,24,.07);border-color:var(--gold);color:var(--gold);}
+.alert-blue{background:rgba(59,130,246,.07);border-color:var(--blue);color:#93C5FD;}
+.alert-red{background:rgba(239,68,68,.07);border-color:var(--red);color:#FCA5A5;}
+
+/* ── SWAP panel (right, sticky) ── */
+.swap-panel{background:var(--sur);border:2px solid var(--border);padding:24px;position:sticky;top:80px;}
+.sp-title{font-family:var(--dis);font-size:18px;margin-bottom:6px;}
+.sp-sub{font-size:12px;color:var(--gray);margin-bottom:20px;}
+
+/* Tabs */
+.tabs{display:flex;margin-bottom:20px;}
+.tab{flex:1;padding:9px;background:none;border:1px solid var(--border);color:var(--gray);
+  cursor:pointer;font-family:var(--body);font-size:13px;font-weight:700;transition:all .2s;}
+.tab.active{background:var(--gold);color:var(--bg);border-color:var(--gold);}
+
+/* Network selector */
+.net-pills{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;}
+.net-pill{padding:6px 12px;border:1px solid var(--border);background:none;color:var(--gray);
+  cursor:pointer;font-size:12px;font-weight:700;transition:all .2s;border-radius:999px;}
+.net-pill.active{border-color:var(--gold);color:var(--gold);}
+
+/* Token address input */
+.addr-fg{display:flex;flex-direction:column;gap:6px;margin-bottom:14px;}
+.addr-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--gray);}
+.addr-row{display:flex;gap:6px;}
+.addr-input{flex:1;background:var(--raised);border:1.5px solid var(--border);color:var(--white);
+  padding:9px 12px;font-family:monospace;font-size:12px;outline:none;}
+.addr-input:focus{border-color:var(--gold);}
+.addr-btn{background:var(--raised);border:1.5px solid var(--border);color:var(--gray);
+  padding:9px 12px;cursor:pointer;font-size:11px;font-weight:700;transition:all .2s;white-space:nowrap;}
+.addr-btn:hover{border-color:var(--gold);color:var(--gold);}
+
+/* Token info card */
+.token-info{background:var(--raised);border:1px solid var(--border);padding:12px;margin-bottom:14px;display:none;}
+.token-info.vis{display:block;}
+.ti-row{display:flex;justify-content:space-between;padding:4px 0;font-size:12px;}
+.ti-key{color:var(--gray);}
+.ti-val{font-family:monospace;font-size:11px;}
+
+/* Amount inputs */
+.swap-inputs{margin-bottom:14px;}
+.si-group{background:var(--raised);border:1.5px solid var(--border);padding:12px;margin-bottom:8px;}
+.si-top{display:flex;justify-content:space-between;margin-bottom:6px;}
+.si-label{font-size:11px;color:var(--gray);}
+.si-bal{font-size:11px;color:var(--gold);cursor:pointer;}
+.si-row{display:flex;gap:8px;align-items:center;}
+.si-input{flex:1;background:none;border:none;color:var(--white);font-size:22px;font-weight:700;
+  font-family:var(--body);outline:none;width:0;}
+.si-token{font-weight:700;font-size:14px;color:var(--white);white-space:nowrap;}
+.swap-arrow{text-align:center;color:var(--gold);font-size:22px;cursor:pointer;margin:4px 0;
+  transition:transform .2s;}
+.swap-arrow:hover{transform:rotate(180deg);}
+
+/* Slippage */
+.slippage-row{display:flex;align-items:center;gap:8px;margin-bottom:16px;flex-wrap:wrap;}
+.sl-label{font-size:11px;color:var(--gray);}
+.sl-btn{padding:4px 10px;border:1px solid var(--border);background:none;color:var(--gray);
+  cursor:pointer;font-size:11px;border-radius:999px;transition:all .2s;}
+.sl-btn.active{border-color:var(--gold);color:var(--gold);}
+.sl-custom{width:52px;background:var(--raised);border:1px solid var(--border);color:var(--white);
+  padding:4px 8px;font-size:11px;outline:none;text-align:center;}
+
+/* Route info */
+.route-box{background:var(--raised);border:1px solid var(--border);padding:10px;margin-bottom:14px;
+  font-size:11px;color:var(--gray);line-height:1.7;display:none;}
+.route-box.vis{display:block;}
+.route-row{display:flex;justify-content:space-between;}
+
+/* Action button */
+.swap-btn{width:100%;padding:14px;background:var(--gold);color:var(--bg);border:none;
+  font-family:var(--dis);font-size:15px;cursor:pointer;text-transform:uppercase;
+  letter-spacing:.05em;transition:all .2s;margin-bottom:8px;}
+.swap-btn:hover{background:var(--gold-d);}
+.swap-btn:disabled{background:#333;color:#666;cursor:not-allowed;}
+.redirect-btn{width:100%;padding:12px;background:none;color:var(--white);border:1.5px solid var(--border);
+  font-family:var(--dis);font-size:13px;cursor:pointer;text-transform:uppercase;letter-spacing:.05em;
+  transition:all .2s;text-decoration:none;display:block;text-align:center;}
+.redirect-btn:hover{border-color:var(--white);}
+
+/* Wallet status */
+.wallet-bar{display:flex;align-items:center;gap:8px;margin-bottom:14px;
+  background:var(--raised);padding:8px 12px;font-size:12px;}
+.w-dot{width:8px;height:8px;border-radius:50%;background:var(--gray);}
+.w-dot.on{background:var(--green);}
+.w-addr{font-family:monospace;font-size:11px;flex:1;}
+.w-btn{padding:4px 10px;background:none;border:1px solid var(--gold);color:var(--gold);
+  cursor:pointer;font-size:11px;white-space:nowrap;}
+
+/* Loading */
+.loading{display:none;align-items:center;justify-content:center;gap:8px;padding:12px;color:var(--gold);font-size:13px;}
+.loading.vis{display:flex;}
+.spin{width:18px;height:18px;border:2px solid var(--border);border-top-color:var(--gold);
+  border-radius:50%;animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+.err{background:rgba(239,68,68,.1);border:1px solid var(--red);color:var(--red);
+  padding:8px 12px;font-size:12px;margin-top:8px;display:none;}
+.err.vis{display:block;}
+
+@media(max-width:800px){
+  .main{grid-template-columns:1fr;}
+  .swap-panel{position:static;}
+  .how-grid{grid-template-columns:1fr;}
+}
+</style>
+</head>
+<body>
+
+<header class="hdr">
+  <div class="logo"><span class="c">DEX</span> 스왑</div>
+  <div class="badge">비상장 코인 거래</div>
+</header>
+
+<div class="main">
+
+<!-- ── LEFT: Info ── -->
+<div class="info-panel">
+
+  <div class="panel-title">비상장 코인, DEX로 거래하기</div>
+
+  <div class="alert alert-blue">
+    거래소(CEX) 상장 전에도 DEX(탈중앙 거래소)에서 즉시 거래할 수 있습니다.
+    유동성 풀만 생성하면 누구나 스왑할 수 있습니다.
+  </div>
+
+  <div class="how-grid">
+    <div class="how-card">
+      <div class="how-num">01</div>
+      <div class="how-title">코인 배포</div>
+      <div class="how-desc">Solana SPL Token 또는 EVM ERC-20 토큰을 메인넷에 배포합니다</div>
+    </div>
+    <div class="how-card">
+      <div class="how-num">02</div>
+      <div class="how-title">유동성 공급</div>
+      <div class="how-desc">DEX에 SOL/ETH + 내 코인을 쌍으로 넣어 유동성 풀을 만듭니다</div>
+    </div>
+    <div class="how-card">
+      <div class="how-num">03</div>
+      <div class="how-title">즉시 거래</div>
+      <div class="how-desc">풀이 생성되면 누구나 내 코인을 DEX에서 즉시 사고팔 수 있습니다</div>
+    </div>
+    <div class="how-card">
+      <div class="how-num">04</div>
+      <div class="how-title">가격 형성</div>
+      <div class="how-desc">수요/공급에 따라 AMM(자동 시장 조성자)이 가격을 자동으로 결정합니다</div>
+    </div>
+  </div>
+
+  <div class="alert alert-red">
+    ⚠ 유동성 잠금 필수: 유동성 풀 생성 후 LP 토큰을 반드시 잠금하세요. 그렇지 않으면 러그풀로 간주됩니다.
+  </div>
+
+  <!-- Solana DEX -->
+  <div class="dex-title">Solana DEX</div>
+  <div class="dex-grid">
+    <div class="dex-card">
+      <div class="dex-chain sol">Solana</div>
+      <div class="dex-name">Jupiter (JUP)</div>
+      <div class="dex-desc">Solana 최대 스왑 애그리게이터. 최적 라우팅 자동 탐색. 신규 토큰도 풀만 있으면 즉시 스왑 가능</div>
+      <a href="https://jup.ag" target="_blank" class="dex-open">→ Jupiter 열기</a>
+    </div>
+    <div class="dex-card">
+      <div class="dex-chain sol">Solana</div>
+      <div class="dex-name">Raydium</div>
+      <div class="dex-desc">Solana 대표 DEX. AMM + CLMM 풀 지원. 내 토큰으로 직접 풀 생성 가능</div>
+      <a href="https://raydium.io/liquidity/create-pool" target="_blank" class="dex-open">→ 풀 생성</a>
+    </div>
+    <div class="dex-card">
+      <div class="dex-chain sol">Solana</div>
+      <div class="dex-name">Orca</div>
+      <div class="dex-desc">집중 유동성(Whirlpool) 지원. 낮은 슬리피지로 효율적인 스왑</div>
+      <a href="https://www.orca.so" target="_blank" class="dex-open">→ Orca 열기</a>
+    </div>
+    <div class="dex-card">
+      <div class="dex-chain sol">Solana</div>
+      <div class="dex-name">Pump.fun</div>
+      <div class="dex-desc">밈코인 전용 런치패드. 유동성 잠금 자동화. 빠른 커뮤니티 형성에 최적</div>
+      <a href="https://pump.fun" target="_blank" class="dex-open">→ Pump.fun</a>
+    </div>
+  </div>
+
+  <!-- EVM DEX -->
+  <div class="dex-title">EVM DEX</div>
+  <div class="dex-grid">
+    <div class="dex-card">
+      <div class="dex-chain evm">Ethereum</div>
+      <div class="dex-name">Uniswap V3</div>
+      <div class="dex-desc">Ethereum 최대 DEX. 집중 유동성으로 자본 효율 극대화. 비상장 토큰도 즉시 스왑</div>
+      <a href="https://app.uniswap.org/add" target="_blank" class="dex-open">→ 풀 생성</a>
+    </div>
+    <div class="dex-card">
+      <div class="dex-chain bsc">BSC</div>
+      <div class="dex-name">PancakeSwap</div>
+      <div class="dex-desc">BSC 대표 DEX. 낮은 가스비. 한국 커뮤니티에 인기. V3 지원</div>
+      <a href="https://pancakeswap.finance/add" target="_blank" class="dex-open">→ PancakeSwap</a>
+    </div>
+    <div class="dex-card">
+      <div class="dex-chain evm">Polygon</div>
+      <div class="dex-name">QuickSwap</div>
+      <div class="dex-desc">Polygon 대표 DEX. 초저렴한 가스비로 소액 거래에 유리</div>
+      <a href="https://quickswap.exchange" target="_blank" class="dex-open">→ QuickSwap</a>
+    </div>
+    <div class="dex-card">
+      <div class="dex-chain evm">Base</div>
+      <div class="dex-name">BaseSwap</div>
+      <div class="dex-desc">Base 체인 최대 DEX. Coinbase 생태계와 연동. 낮은 수수료</div>
+      <a href="https://baseswap.fi" target="_blank" class="dex-open">→ BaseSwap</a>
+    </div>
+  </div>
+
+  <!-- How to create liquidity pool -->
+  <div class="dex-title">유동성 풀 만드는 법 (Raydium 기준)</div>
+  <div class="alert alert-gold" style="line-height:1.8">
+    <strong>① 준비물:</strong> SOL (가스비) + 내 토큰 + Phantom 지갑<br>
+    <strong>② Raydium</strong> → Liquidity → Create Pool 클릭<br>
+    <strong>③</strong> 내 토큰 민트 주소 입력 → 초기 가격 설정<br>
+    <strong>④</strong> SOL과 내 토큰을 1:N 비율로 공급<br>
+    <strong>⑤ LP 토큰 잠금</strong> → Unicrypt 또는 Raydium 자체 잠금<br>
+    <strong>완료!</strong> Jupiter에서 즉시 스왑 가능
+  </div>
+
+</div>
+
+<!-- ── RIGHT: Swap Panel ── -->
+<div class="swap-panel">
+  <div class="sp-title">코인 스왑</div>
+  <div class="sp-sub">토큰 주소 입력 → DEX로 연결</div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('sol',this)">◎ Solana</button>
+    <button class="tab" onclick="switchTab('evm',this)">⟠ EVM</button>
+  </div>
+
+  <!-- Solana tab -->
+  <div id="solTab">
+    <div class="net-pills">
+      <button class="net-pill active" onclick="setSolNet('mainnet',this)">Mainnet</button>
+      <button class="net-pill" onclick="setSolNet('devnet',this)">Devnet</button>
+    </div>
+
+    <div class="wallet-bar">
+      <div class="w-dot" id="solDot"></div>
+      <div class="w-addr" id="solAddr">지갑 미연결</div>
+      <button class="w-btn" onclick="connectPhantom()" id="phBtn">연결</button>
+    </div>
+
+    <div class="addr-fg">
+      <div class="addr-label">토큰 민트 주소</div>
+      <div class="addr-row">
+        <input class="addr-input" id="solMint" placeholder="Token Mint Address...">
+        <button class="addr-btn" onclick="lookupSolToken()">조회</button>
+      </div>
+    </div>
+
+    <div class="token-info" id="solTokenInfo">
+      <div class="ti-row"><span class="ti-key">이름</span><span class="ti-val" id="ti_name">—</span></div>
+      <div class="ti-row"><span class="ti-key">심볼</span><span class="ti-val" id="ti_sym">—</span></div>
+      <div class="ti-row"><span class="ti-key">소수점</span><span class="ti-val" id="ti_dec">—</span></div>
+      <div class="ti-row"><span class="ti-key">공급량</span><span class="ti-val" id="ti_supply">—</span></div>
+    </div>
+
+    <div class="swap-inputs">
+      <div class="si-group">
+        <div class="si-top"><span class="si-label">지불</span><span class="si-bal" onclick="maxSol()">SOL 잔액: <span id="solBal">—</span></span></div>
+        <div class="si-row">
+          <input class="si-input" id="solIn" type="number" placeholder="0.0" oninput="calcSolSwap()">
+          <div class="si-token">SOL</div>
+        </div>
+      </div>
+      <div class="swap-arrow" onclick="flipSol()">⇅</div>
+      <div class="si-group">
+        <div class="si-top"><span class="si-label">수령</span><span class="si-bal">&nbsp;</span></div>
+        <div class="si-row">
+          <input class="si-input" id="solOut" type="number" placeholder="0.0" readonly>
+          <div class="si-token" id="solOutToken">TOKEN</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="slippage-row">
+      <span class="sl-label">슬리피지</span>
+      <button class="sl-btn active" onclick="setSl(0.5,this)">0.5%</button>
+      <button class="sl-btn" onclick="setSl(1,this)">1%</button>
+      <button class="sl-btn" onclick="setSl(5,this)">5%</button>
+      <input class="sl-custom" id="slCustom" type="number" placeholder="%" oninput="setSl(+this.value,null)">
+    </div>
+
+    <div class="route-box" id="solRoute">
+      <div class="route-row"><span>예상 수령량</span><span id="routeOut">—</span></div>
+      <div class="route-row"><span>가격 영향</span><span id="routeImpact" style="color:var(--green)">—</span></div>
+      <div class="route-row"><span>최소 수령 (슬리피지 적용)</span><span id="routeMin">—</span></div>
+      <div class="route-row"><span>라우팅</span><span id="routePath">Jupiter</span></div>
+    </div>
+
+    <div class="loading" id="solLoad"><div class="spin"></div>견적 가져오는 중...</div>
+    <div class="err" id="solErr"></div>
+
+    <button class="swap-btn" onclick="swapSolana()" id="solSwapBtn">◎ &nbsp; Jupiter로 스왑</button>
+    <a id="jupLink" href="https://jup.ag" target="_blank" class="redirect-btn">🔗 Jupiter에서 직접 스왑</a>
+  </div>
+
+  <!-- EVM tab -->
+  <div id="evmTab" style="display:none">
+    <div class="net-pills" id="evmNetPills">
+      <button class="net-pill active" onclick="setEvmNet('ethereum',this)">Ethereum</button>
+      <button class="net-pill" onclick="setEvmNet('bsc',this)">BSC</button>
+      <button class="net-pill" onclick="setEvmNet('polygon',this)">Polygon</button>
+      <button class="net-pill" onclick="setEvmNet('base',this)">Base</button>
+    </div>
+
+    <div class="wallet-bar">
+      <div class="w-dot" id="evmDot"></div>
+      <div class="w-addr" id="evmAddr">지갑 미연결</div>
+      <button class="w-btn" onclick="connectMM()" id="mmBtn">연결</button>
+    </div>
+
+    <div class="addr-fg">
+      <div class="addr-label">토큰 컨트랙트 주소</div>
+      <div class="addr-row">
+        <input class="addr-input" id="evmContract" placeholder="0x...">
+        <button class="addr-btn" onclick="lookupEVMToken()">조회</button>
+      </div>
+    </div>
+
+    <div class="token-info" id="evmTokenInfo">
+      <div class="ti-row"><span class="ti-key">이름</span><span class="ti-val" id="eti_name">—</span></div>
+      <div class="ti-row"><span class="ti-key">심볼</span><span class="ti-val" id="eti_sym">—</span></div>
+      <div class="ti-row"><span class="ti-key">소수점</span><span class="ti-val" id="eti_dec">—</span></div>
+    </div>
+
+    <div class="swap-inputs">
+      <div class="si-group">
+        <div class="si-top"><span class="si-label">지불</span><span class="si-bal" id="evmBal">잔액: —</span></div>
+        <div class="si-row">
+          <input class="si-input" id="evmIn" type="number" placeholder="0.0">
+          <div class="si-token" id="evmInToken">ETH</div>
+        </div>
+      </div>
+      <div class="swap-arrow">⇅</div>
+      <div class="si-group">
+        <div class="si-top"><span class="si-label">수령</span><span>&nbsp;</span></div>
+        <div class="si-row">
+          <input class="si-input" id="evmOut" type="number" placeholder="0.0" readonly>
+          <div class="si-token" id="evmOutToken">TOKEN</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="slippage-row">
+      <span class="sl-label">슬리피지</span>
+      <button class="sl-btn active" onclick="setSl(0.5,this)">0.5%</button>
+      <button class="sl-btn" onclick="setSl(1,this)">1%</button>
+      <button class="sl-btn" onclick="setSl(3,this)">3%</button>
+    </div>
+
+    <div class="err" id="evmErr"></div>
+
+    <button class="swap-btn" onclick="openEvmSwap()" id="evmSwapBtn">⟠ &nbsp; DEX에서 스왑하기</button>
+  </div>
+
+</div>
+<!-- /.swap-panel -->
+</div><!-- /.main -->
+
+<script>
+// ─────────────────────────────────────
+// State
+// ─────────────────────────────────────
+let activeTab = 'sol';
+let solNet  = 'mainnet';
+let evmNet  = 'ethereum';
+let slippage = 0.5;
+let solConnected = false;
+let evmConnected = false;
+let solMintInfo  = null;
+let evmTokenData = null;
+
+const EVM_NETS = {
+  ethereum: { chainId:'0x1',    name:'ETH', explorer:'https://etherscan.io', uniswap:'https://app.uniswap.org/swap', currency:'ETH' },
+  bsc:      { chainId:'0x38',   name:'BNB', explorer:'https://bscscan.com',  uniswap:'https://pancakeswap.finance/swap', currency:'BNB' },
+  polygon:  { chainId:'0x89',   name:'MATIC', explorer:'https://polygonscan.com', uniswap:'https://quickswap.exchange/#/swap', currency:'MATIC' },
+  base:     { chainId:'0x2105', name:'ETH', explorer:'https://basescan.org', uniswap:'https://baseswap.fi/#/swap', currency:'ETH' },
+};
+
+// ─────────────────────────────────────
+// Tab switching
+// ─────────────────────────────────────
+function switchTab(tab, btn) {
+  activeTab = tab;
+  document.getElementById('solTab').style.display = tab === 'sol' ? 'block' : 'none';
+  document.getElementById('evmTab').style.display = tab === 'evm' ? 'block' : 'none';
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+function setSolNet(net, btn) {
+  solNet = net;
+  document.querySelectorAll('#solTab .net-pill').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+function setEvmNet(net, btn) {
+  evmNet = net;
+  document.querySelectorAll('#evmNetPills .net-pill').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  const n = EVM_NETS[net];
+  document.getElementById('evmInToken').textContent = n.currency;
+}
+
+function setSl(val, btn) {
+  slippage = val;
+  document.querySelectorAll('.sl-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+}
+
+// ─────────────────────────────────────
+// Phantom wallet
+// ─────────────────────────────────────
+async function connectPhantom() {
+  if (!window.solana || !window.solana.isPhantom) {
+    alert('Phantom 지갑을 설치해 주세요.\nhttps://phantom.app');
+    return;
+  }
+  try {
+    const res = await window.solana.connect();
+    const addr = res.publicKey.toString();
+    solConnected = true;
+    document.getElementById('solAddr').textContent = addr.slice(0,6)+'…'+addr.slice(-4);
+    document.getElementById('solDot').classList.add('on');
+    document.getElementById('phBtn').textContent = '✓';
+    document.getElementById('phBtn').disabled = true;
+
+    // Get SOL balance
+    const ep = solNet === 'mainnet' ? 'https://api.mainnet-beta.solana.com' : 'https://api.devnet.solana.com';
+    const { Connection, PublicKey } = solanaWeb3;
+    const conn = new Connection(ep, 'confirmed');
+    const bal  = await conn.getBalance(new PublicKey(addr));
+    document.getElementById('solBal').textContent = (bal / 1e9).toFixed(4) + ' SOL';
+  } catch(e) { console.error(e); }
+}
+
+// ─────────────────────────────────────
+// MetaMask wallet
+// ─────────────────────────────────────
+async function connectMM() {
+  if (!window.ethereum) { alert('MetaMask를 설치해 주세요.\nhttps://metamask.io'); return; }
+  try {
+    const [addr] = await window.ethereum.request({ method: 'eth_requestAccounts' });
+    evmConnected = true;
+    document.getElementById('evmAddr').textContent = addr.slice(0,6)+'…'+addr.slice(-4);
+    document.getElementById('evmDot').classList.add('on');
+    document.getElementById('mmBtn').textContent = '✓';
+    document.getElementById('mmBtn').disabled = true;
+    // Get balance
+    const provider = new ethers.providers.Web3Provider(window.ethereum);
+    const bal = await provider.getBalance(addr);
+    document.getElementById('evmBal').textContent = '잔액: ' + parseFloat(ethers.utils.formatEther(bal)).toFixed(4) + ' ' + EVM_NETS[evmNet].currency;
+  } catch(e) { console.error(e); }
+}
+
+// ─────────────────────────────────────
+// Solana token lookup (via Solana RPC)
+// ─────────────────────────────────────
+async function lookupSolToken() {
+  const mint = document.getElementById('solMint').value.trim();
+  if (!mint) return;
+  showErr('solErr', '');
+  showLoad('solLoad', true);
+
+  try {
+    const { Connection, PublicKey } = solanaWeb3;
+    const ep = solNet === 'mainnet' ? 'https://api.mainnet-beta.solana.com' : 'https://api.devnet.solana.com';
+    const conn = new Connection(ep, 'confirmed');
+    const mintPk = new PublicKey(mint);
+
+    // Get mint account info
+    const info = await conn.getParsedAccountInfo(mintPk);
+    if (!info.value) { showErr('solErr', '토큰을 찾을 수 없습니다. 주소를 확인해 주세요.'); return; }
+
+    const data = info.value.data?.parsed?.info;
+    if (!data) { showErr('solErr', '유효한 SPL Token 주소가 아닙니다.'); return; }
+
+    solMintInfo = { mint, decimals: data.decimals, supply: data.supply };
+
+    document.getElementById('ti_name').textContent = '(Metadata 없음)';
+    document.getElementById('ti_sym').textContent  = '—';
+    document.getElementById('ti_dec').textContent  = data.decimals;
+    document.getElementById('ti_supply').textContent = parseInt(data.supply).toLocaleString();
+    document.getElementById('solTokenInfo').classList.add('vis');
+    document.getElementById('solOutToken').textContent = 'TOKEN';
+    document.getElementById('solRoute').classList.add('vis');
+
+    // Update Jupiter link
+    document.getElementById('jupLink').href = `https://jup.ag/swap/SOL-${mint}`;
+    document.getElementById('routePath').textContent = 'Jupiter (SOL → ' + mint.slice(0,8) + '…)';
+    document.getElementById('routeOut').textContent  = '견적: Jupiter 클릭';
+    document.getElementById('routeImpact').textContent = '실시간 가격 확인 필요';
+    document.getElementById('routeMin').textContent  = '슬리피지 ' + slippage + '% 적용';
+
+  } catch(e) {
+    showErr('solErr', '오류: ' + e.message);
+  } finally {
+    showLoad('solLoad', false);
+  }
+}
+
+// ─────────────────────────────────────
+// EVM token lookup
+// ─────────────────────────────────────
+async function lookupEVMToken() {
+  const addr = document.getElementById('evmContract').value.trim();
+  if (!addr || !addr.startsWith('0x')) { showErr('evmErr', '올바른 컨트랙트 주소를 입력해 주세요 (0x로 시작)'); return; }
+  if (!window.ethereum) { showErr('evmErr', 'MetaMask를 연결해 주세요'); return; }
+
+  try {
+    const provider = new ethers.providers.Web3Provider(window.ethereum);
+    const abi = ['function name() view returns (string)', 'function symbol() view returns (string)', 'function decimals() view returns (uint8)'];
+    const contract = new ethers.Contract(addr, abi, provider);
+
+    const [name, sym, dec] = await Promise.all([contract.name(), contract.symbol(), contract.decimals()]);
+    evmTokenData = { addr, name, sym, dec };
+
+    document.getElementById('eti_name').textContent = name;
+    document.getElementById('eti_sym').textContent  = sym;
+    document.getElementById('eti_dec').textContent  = dec;
+    document.getElementById('evmTokenInfo').classList.add('vis');
+    document.getElementById('evmOutToken').textContent = sym;
+    showErr('evmErr', '');
+  } catch(e) {
+    showErr('evmErr', '토큰 조회 실패: ' + e.message);
+  }
+}
+
+// ─────────────────────────────────────
+// Swap actions
+// ─────────────────────────────────────
+function swapSolana() {
+  const mint = document.getElementById('solMint').value.trim();
+  const url  = mint ? `https://jup.ag/swap/SOL-${mint}` : 'https://jup.ag';
+  window.open(url, '_blank');
+}
+
+function openEvmSwap() {
+  const addr = document.getElementById('evmContract').value.trim();
+  const n    = EVM_NETS[evmNet];
+  let url    = n.uniswap;
+  if (addr) url += `?outputCurrency=${addr}`;
+  window.open(url, '_blank');
+}
+
+function calcSolSwap() {
+  const inVal = parseFloat(document.getElementById('solIn').value) || 0;
+  if (inVal > 0 && solMintInfo) {
+    document.getElementById('solOut').value = '견적 필요 → Jupiter';
+  }
+}
+
+function flipSol() {
+  const a = document.getElementById('solIn').value;
+  document.getElementById('solIn').value  = document.getElementById('solOut').value || '';
+  document.getElementById('solOut').value = a;
+}
+
+function maxSol() {
+  const bal = document.getElementById('solBal').textContent;
+  const num = parseFloat(bal);
+  if (!isNaN(num)) document.getElementById('solIn').value = Math.max(0, num - 0.01).toFixed(4);
+}
+
+// ─────────────────────────────────────
+// Utils
+// ─────────────────────────────────────
+function showLoad(id, vis) { document.getElementById(id).classList.toggle('vis', vis); }
+function showErr(id, msg)  {
+  const el = document.getElementById(id);
+  el.textContent = msg; el.classList.toggle('vis', !!msg);
+}
+</script>
+</body>
+</html>
