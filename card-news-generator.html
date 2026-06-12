@@ -1,0 +1,1251 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>카드뉴스 자동생성기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Work+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+  /* ── VoiceBox Design System ── */
+  :root {
+    --black: #0A0A0A;
+    --red: #EF4444;
+    --red-dark: #DC2626;
+    --white: #FAFAFA;
+    --surface: #F5F5F5;
+    --surface-raised: #E5E5E5;
+    --text-primary: #0A0A0A;
+    --text-secondary: #525252;
+    --text-tertiary: #A3A3A3;
+    --border-subtle: #E5E5E5;
+    --border-medium: #D4D4D4;
+    --border-strong: #0A0A0A;
+    --font-display: 'Archivo Black', Impact, sans-serif;
+    --font-body: 'Work Sans', -apple-system, sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: var(--font-body);
+    background: var(--white);
+    color: var(--text-primary);
+    min-height: 100vh;
+  }
+
+  /* ── App Shell ── */
+  .app-header {
+    border-bottom: 2px solid var(--black);
+    padding: 16px 32px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: var(--white);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .app-logo {
+    font-family: var(--font-display);
+    font-size: 20px;
+    color: var(--black);
+    letter-spacing: -0.02em;
+  }
+
+  .app-logo span {
+    color: var(--red);
+  }
+
+  .app-badge {
+    background: var(--black);
+    color: var(--white);
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    padding: 3px 8px;
+  }
+
+  .main {
+    display: grid;
+    grid-template-columns: 380px 1fr;
+    min-height: calc(100vh - 57px);
+  }
+
+  /* ── Sidebar ── */
+  .sidebar {
+    border-right: 2px solid var(--black);
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    background: var(--white);
+  }
+
+  .sidebar-section-label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+  }
+
+  label {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--black);
+    display: block;
+    margin-bottom: 6px;
+  }
+
+  input[type="text"],
+  input[type="password"],
+  textarea,
+  select {
+    width: 100%;
+    background: var(--white);
+    border: 2px solid var(--border-medium);
+    border-radius: 0;
+    padding: 10px 14px;
+    font-family: var(--font-body);
+    font-size: 14px;
+    color: var(--text-primary);
+    outline: none;
+    transition: border-color 0.15s;
+  }
+
+  input[type="text"]:focus,
+  input[type="password"]:focus,
+  textarea:focus,
+  select:focus {
+    border-color: var(--black);
+  }
+
+  textarea {
+    resize: vertical;
+    min-height: 80px;
+  }
+
+  select {
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%230A0A0A' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    padding-right: 36px;
+  }
+
+  .btn-primary {
+    width: 100%;
+    background: var(--black);
+    color: var(--white);
+    border: 2px solid var(--black);
+    border-radius: 0;
+    padding: 14px 24px;
+    font-family: var(--font-body);
+    font-size: 14px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .btn-primary:hover { background: var(--red); border-color: var(--red); }
+  .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn-primary:disabled:hover { background: var(--black); border-color: var(--black); }
+
+  .btn-secondary {
+    background: transparent;
+    color: var(--black);
+    border: 2px solid var(--black);
+    border-radius: 0;
+    padding: 10px 24px;
+    font-family: var(--font-body);
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    cursor: pointer;
+    transition: background 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .btn-secondary:hover { background: var(--black); color: var(--white); }
+
+  .field-group { display: flex; flex-direction: column; gap: 12px; }
+
+  .color-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+  }
+
+  .color-swatch {
+    height: 32px;
+    border: 2px solid transparent;
+    cursor: pointer;
+    transition: border-color 0.1s;
+    position: relative;
+  }
+
+  .color-swatch.active { border-color: var(--black); }
+  .color-swatch.active::after {
+    content: '';
+    position: absolute;
+    inset: 3px;
+    border: 1px solid rgba(255,255,255,0.6);
+  }
+
+  .progress-bar {
+    height: 3px;
+    background: var(--border-subtle);
+    width: 100%;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: var(--red);
+    width: 0%;
+    transition: width 0.3s;
+  }
+
+  .status-msg {
+    font-size: 12px;
+    color: var(--text-secondary);
+    min-height: 18px;
+  }
+
+  .status-msg.error { color: var(--red); }
+
+  /* ── Canvas Area ── */
+  .canvas-area {
+    background: var(--surface);
+    padding: 32px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    overflow-y: auto;
+  }
+
+  .canvas-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .toolbar-title {
+    font-family: var(--font-display);
+    font-size: 16px;
+    letter-spacing: -0.01em;
+  }
+
+  .toolbar-actions { display: flex; gap: 8px; }
+
+  /* ── Card Slides ── */
+  .cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
+  }
+
+  .card-wrapper {
+    position: relative;
+  }
+
+  .card-num {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-tertiary);
+    margin-bottom: 6px;
+  }
+
+  /* ── Actual Card News Slides ── */
+  .news-card {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    position: relative;
+    overflow: hidden;
+    font-family: var(--font-body);
+  }
+
+  /* Cover Card */
+  .card-cover {
+    background: var(--black);
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding: 32px;
+  }
+
+  .card-cover .card-tag {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--red);
+    margin-bottom: 12px;
+  }
+
+  .card-cover .card-title {
+    font-family: var(--font-display);
+    font-size: clamp(24px, 5vw, 36px);
+    color: var(--white);
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+  }
+
+  .card-cover .card-subtitle {
+    font-size: 13px;
+    color: #A3A3A3;
+    margin-top: 12px;
+    line-height: 1.5;
+  }
+
+  .card-cover .card-number-big {
+    position: absolute;
+    top: 24px;
+    right: 28px;
+    font-family: var(--font-display);
+    font-size: 80px;
+    color: #1A1A1A;
+    line-height: 1;
+    letter-spacing: -0.04em;
+    user-select: none;
+  }
+
+  .card-cover .brand-mark {
+    position: absolute;
+    top: 24px;
+    left: 32px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .card-cover .brand-dot {
+    width: 8px;
+    height: 8px;
+    background: var(--red);
+  }
+
+  .card-cover .brand-name {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: #525252;
+  }
+
+  .card-cover .red-bar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 4px;
+    background: var(--red);
+  }
+
+  /* Intro Card */
+  .card-intro {
+    background: var(--white);
+    border: 3px solid var(--black);
+    display: flex;
+    flex-direction: column;
+    padding: 32px;
+  }
+
+  .card-intro .card-overline {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--red);
+    border-left: 3px solid var(--red);
+    padding-left: 10px;
+    margin-bottom: 20px;
+  }
+
+  .card-intro .card-heading {
+    font-family: var(--font-display);
+    font-size: clamp(18px, 3.5vw, 26px);
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    color: var(--black);
+    flex: 1;
+  }
+
+  .card-intro .card-body {
+    font-size: 14px;
+    line-height: 1.65;
+    color: var(--text-secondary);
+    margin-top: 16px;
+    border-top: 1px solid var(--border-subtle);
+    padding-top: 16px;
+  }
+
+  /* Point Card */
+  .card-point {
+    background: var(--white);
+    border: 3px solid var(--black);
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+    overflow: hidden;
+  }
+
+  .card-point .point-header {
+    background: var(--black);
+    padding: 20px 28px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .card-point .point-num {
+    font-family: var(--font-display);
+    font-size: 42px;
+    color: var(--red);
+    line-height: 1;
+    letter-spacing: -0.04em;
+    min-width: 48px;
+  }
+
+  .card-point .point-label {
+    font-family: var(--font-display);
+    font-size: clamp(14px, 2.5vw, 18px);
+    color: var(--white);
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+  }
+
+  .card-point .point-body {
+    padding: 24px 28px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .card-point .point-detail {
+    font-size: 14px;
+    line-height: 1.65;
+    color: var(--text-secondary);
+  }
+
+  .card-point .point-highlight {
+    background: var(--surface);
+    border-left: 4px solid var(--red);
+    padding: 10px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--black);
+    line-height: 1.5;
+    margin-top: auto;
+  }
+
+  /* Quote Card */
+  .card-quote {
+    background: var(--red);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 36px 32px;
+    position: relative;
+  }
+
+  .card-quote .quote-mark {
+    font-family: var(--font-display);
+    font-size: 100px;
+    color: rgba(255,255,255,0.15);
+    position: absolute;
+    top: 0;
+    left: 24px;
+    line-height: 1;
+    user-select: none;
+  }
+
+  .card-quote .quote-text {
+    font-family: var(--font-display);
+    font-size: clamp(16px, 3vw, 22px);
+    color: var(--white);
+    line-height: 1.3;
+    letter-spacing: -0.01em;
+    position: relative;
+    z-index: 1;
+  }
+
+  .card-quote .quote-source {
+    margin-top: 20px;
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: rgba(255,255,255,0.65);
+    position: relative;
+    z-index: 1;
+  }
+
+  /* Closing Card */
+  .card-closing {
+    background: var(--surface);
+    border: 3px solid var(--black);
+    display: flex;
+    flex-direction: column;
+    padding: 32px;
+    position: relative;
+  }
+
+  .card-closing .close-overline {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--text-tertiary);
+    margin-bottom: 16px;
+  }
+
+  .card-closing .close-heading {
+    font-family: var(--font-display);
+    font-size: clamp(18px, 3.5vw, 26px);
+    color: var(--black);
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    flex: 1;
+  }
+
+  .card-closing .close-items {
+    margin-top: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .card-closing .close-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+  }
+
+  .card-closing .close-dot {
+    width: 6px;
+    height: 6px;
+    background: var(--red);
+    flex-shrink: 0;
+    margin-top: 5px;
+  }
+
+  .card-closing .close-cta {
+    margin-top: 24px;
+    padding: 12px 20px;
+    background: var(--black);
+    color: var(--white);
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    text-align: center;
+    align-self: flex-start;
+  }
+
+  /* Empty State */
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    gap: 16px;
+    color: var(--text-tertiary);
+    text-align: center;
+    padding: 80px 40px;
+  }
+
+  .empty-state .empty-icon {
+    width: 80px;
+    height: 80px;
+    border: 3px solid var(--border-subtle);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .empty-state h3 {
+    font-family: var(--font-display);
+    font-size: 20px;
+    color: var(--text-secondary);
+    letter-spacing: -0.01em;
+  }
+
+  .empty-state p {
+    font-size: 14px;
+    max-width: 300px;
+    line-height: 1.6;
+  }
+
+  /* Theme variants */
+  .theme-dark .card-intro,
+  .theme-dark .card-closing {
+    background: var(--black);
+    border-color: var(--border-medium);
+  }
+
+  .theme-dark .card-intro .card-heading,
+  .theme-dark .card-closing .close-heading { color: var(--white); }
+
+  .theme-dark .card-intro .card-body { color: var(--text-tertiary); }
+  .theme-dark .card-closing .close-overline { color: var(--text-tertiary); }
+  .theme-dark .card-closing .close-item { color: #A3A3A3; }
+  .theme-dark .card-closing .close-cta { background: var(--red); }
+
+  .theme-dark .card-point { background: var(--black); border-color: var(--border-medium); }
+  .theme-dark .card-point .point-body { background: var(--black); }
+  .theme-dark .card-point .point-detail { color: var(--text-tertiary); }
+  .theme-dark .card-point .point-highlight { background: #1A1A1A; color: var(--white); }
+
+  /* Theme blue */
+  .theme-blue .card-cover { background: #1E3A5F; }
+  .theme-blue .card-cover .brand-dot,
+  .theme-blue .card-cover .red-bar { background: #60A5FA; }
+  .theme-blue .card-cover .card-tag { color: #60A5FA; }
+  .theme-blue .card-cover .card-number-big { color: #1a3260; }
+
+  .theme-blue .card-intro .card-overline,
+  .theme-blue .card-point .point-num,
+  .theme-blue .card-point .point-highlight,
+  .theme-blue .card-closing .close-dot { color: #2563EB; border-color: #2563EB; background: transparent; }
+  .theme-blue .card-point .point-header { background: #1E3A5F; }
+  .theme-blue .card-closing .close-cta { background: #1E3A5F; }
+  .theme-blue .card-quote { background: #2563EB; }
+  .theme-blue .card-intro .card-overline { background: transparent; }
+  .theme-blue .card-point .point-highlight { background: #EFF6FF; color: #1D4ED8; border-color: #2563EB; }
+
+  /* Spinner */
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .spinner {
+    width: 18px; height: 18px;
+    border: 2px solid rgba(250,250,250,0.3);
+    border-top-color: var(--white);
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+    flex-shrink: 0;
+  }
+
+  /* Download button on card */
+  .card-download-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 28px;
+    height: 28px;
+    background: var(--black);
+    color: var(--white);
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.15s;
+    font-size: 14px;
+    z-index: 10;
+  }
+
+  .card-wrapper:hover .card-download-btn { opacity: 1; }
+
+  /* Image card styles */
+  .card-cover.has-img {
+    background-size: cover;
+    background-position: center;
+    position: relative;
+  }
+  .card-cover.has-img::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top, rgba(0,0,0,0.92) 50%, rgba(0,0,0,0.4) 100%);
+    z-index: 0;
+  }
+  .card-cover.has-img > * { position: relative; z-index: 1; }
+
+  .card-point.has-img {
+    display: grid;
+    grid-template-rows: 45% 55%;
+  }
+  .card-point.has-img .point-img {
+    background-size: cover;
+    background-position: center;
+    position: relative;
+  }
+  .card-point.has-img .point-img::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(0,0,0,0.15);
+  }
+  .card-point.has-img .point-header {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(10,10,10,0.85);
+    backdrop-filter: blur(2px);
+    padding: 12px 20px;
+    z-index: 2;
+  }
+  .card-point.has-img .point-img-wrap {
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border-medium); }
+
+  /* Responsive */
+  @media (max-width: 900px) {
+    .main { grid-template-columns: 1fr; }
+    .sidebar { border-right: none; border-bottom: 2px solid var(--black); }
+  }
+</style>
+</head>
+<body>
+
+<header class="app-header">
+  <div class="app-logo">CARD<span>NEWS</span></div>
+  <div class="app-badge">Auto Generator</div>
+</header>
+
+<div class="main">
+
+  <!-- ── Sidebar ── -->
+  <aside class="sidebar">
+
+    <div>
+      <div class="sidebar-section-label">콘텐츠 설정</div>
+      <div class="field-group">
+
+        <div>
+          <label for="topic">주제</label>
+          <input type="text" id="topic" placeholder="예: AI가 바꾸는 미래 직업" />
+        </div>
+
+        <div>
+          <label for="tone">톤 앤 매너</label>
+          <select id="tone">
+            <option value="informative">정보 전달형</option>
+            <option value="persuasive">설득형</option>
+            <option value="educational">교육형</option>
+            <option value="trendy">트렌디/감성형</option>
+            <option value="expert">전문가형</option>
+          </select>
+        </div>
+
+        <div>
+          <label for="audience">타겟 독자</label>
+          <input type="text" id="audience" placeholder="예: 20-30대 직장인" />
+        </div>
+
+        <div>
+          <label for="card-count">카드 수</label>
+          <select id="card-count">
+            <option value="5">5장 (표준)</option>
+            <option value="6" selected>6장 (권장)</option>
+            <option value="8">8장 (상세)</option>
+          </select>
+        </div>
+
+        <div>
+          <label for="lang">출력 언어</label>
+          <select id="lang">
+            <option value="ko" selected>한국어</option>
+            <option value="en">English</option>
+          </select>
+        </div>
+
+      </div>
+    </div>
+
+    <div>
+      <div class="sidebar-section-label">디자인</div>
+      <div>
+        <label>컬러 테마</label>
+        <div class="color-grid">
+          <div class="color-swatch active" data-theme="" style="background:#0A0A0A;" title="VoiceBox Classic"></div>
+          <div class="color-swatch" data-theme="theme-dark" style="background:#1A1A1A; border: 1px solid #333;" title="Dark Mode"></div>
+          <div class="color-swatch" data-theme="theme-blue" style="background:#1E3A5F;" title="Navy Blue"></div>
+          <div class="color-swatch" data-theme="theme-green" style="background:#14532D;" title="Forest Green"></div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="sidebar-section-label">API 설정</div>
+      <div class="field-group">
+        <div>
+          <label for="api-key">Claude API Key</label>
+          <input type="password" id="api-key" placeholder="sk-ant-..." />
+        </div>
+        <div>
+          <label for="model">모델</label>
+          <select id="model">
+            <option value="claude-haiku-4-5-20251001">Haiku 4.5 (빠름)</option>
+            <option value="claude-sonnet-4-6" selected>Sonnet 4.6 (권장)</option>
+            <option value="claude-opus-4-8">Opus 4.8 (최고품질)</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="progress-bar"><div class="progress-fill" id="progress"></div></div>
+      <div class="status-msg" id="status-msg">주제를 입력하고 생성을 시작하세요.</div>
+    </div>
+
+    <div style="display:flex; flex-direction:column; gap:8px;">
+      <button class="btn-primary" id="generate-btn" onclick="generateCards()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+        카드뉴스 생성
+      </button>
+      <button class="btn-secondary" onclick="loadDemo()" style="border-color:var(--border-medium); color:var(--text-secondary);">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg>
+        샘플 미리보기 (API 키 불필요)
+      </button>
+      <button class="btn-secondary" id="download-all-btn" onclick="downloadAll()" disabled>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        전체 PNG 다운로드
+      </button>
+    </div>
+
+  </aside>
+
+  <!-- ── Canvas ── -->
+  <main class="canvas-area" id="canvas-area">
+    <div class="canvas-toolbar">
+      <div class="toolbar-title" id="canvas-title">미리보기</div>
+      <div class="toolbar-actions" id="toolbar-actions" style="display:none">
+        <button class="btn-secondary" onclick="downloadAll()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          전체 저장
+        </button>
+      </div>
+    </div>
+
+    <div id="empty-state" class="empty-state">
+      <div class="empty-icon">
+        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#D4D4D4" stroke-width="1.5">
+          <rect x="2" y="3" width="20" height="14" rx="0"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
+        </svg>
+      </div>
+      <h3>카드뉴스 없음</h3>
+      <p>왼쪽에서 주제와 API 키를 입력한 뒤 <strong>생성</strong> 버튼을 누르세요.</p>
+    </div>
+
+    <div class="cards-grid" id="cards-grid" style="display:none"></div>
+
+  </main>
+
+</div>
+
+<style>
+  .theme-green .card-cover { background: #14532D; }
+  .theme-green .card-cover .brand-dot,
+  .theme-green .card-cover .red-bar { background: #4ADE80; }
+  .theme-green .card-cover .card-tag { color: #4ADE80; }
+  .theme-green .card-cover .card-number-big { color: #133826; }
+  .theme-green .card-intro .card-overline { color: #16A34A; border-color: #16A34A; }
+  .theme-green .card-point .point-num { color: #16A34A; }
+  .theme-green .card-point .point-header { background: #14532D; }
+  .theme-green .card-point .point-highlight { background: #F0FDF4; color: #166534; border-color: #16A34A; }
+  .theme-green .card-closing .close-dot { background: #16A34A; }
+  .theme-green .card-closing .close-cta { background: #14532D; }
+  .theme-green .card-quote { background: #16A34A; }
+</style>
+
+<script>
+let currentTheme = '';
+let generatedCards = [];
+
+// Theme switcher
+document.querySelectorAll('.color-swatch').forEach(s => {
+  s.addEventListener('click', () => {
+    document.querySelectorAll('.color-swatch').forEach(x => x.classList.remove('active'));
+    s.classList.add('active');
+    currentTheme = s.dataset.theme;
+    document.querySelectorAll('.news-card').forEach(card => {
+      card.className = card.className.replace(/theme-\w+/g, '').trim();
+      if (currentTheme) card.classList.add(currentTheme);
+    });
+  });
+});
+
+function setStatus(msg, isError = false) {
+  const el = document.getElementById('status-msg');
+  el.textContent = msg;
+  el.className = 'status-msg' + (isError ? ' error' : '');
+}
+
+function setProgress(pct) {
+  document.getElementById('progress').style.width = pct + '%';
+}
+
+async function generateCards() {
+  const topic = document.getElementById('topic').value.trim();
+  const apiKey = document.getElementById('api-key').value.trim();
+  const tone = document.getElementById('tone').value;
+  const audience = document.getElementById('audience').value.trim() || '일반 독자';
+  const cardCount = parseInt(document.getElementById('card-count').value);
+  const lang = document.getElementById('lang').value;
+  const model = document.getElementById('model').value;
+
+  if (!topic) { setStatus('주제를 입력하세요.', true); return; }
+  if (!apiKey || !apiKey.startsWith('sk-ant-')) {
+    setStatus('API Key 없음 → 아래 샘플 미리보기 버튼을 사용하세요.', true); return;
+  }
+
+  const btn = document.getElementById('generate-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<div class="spinner"></div> 생성 중...';
+  setProgress(10);
+  setStatus('Claude AI가 콘텐츠를 작성 중...');
+
+  const toneMap = {
+    informative: '정보 전달형: 사실과 데이터 중심, 객관적',
+    persuasive: '설득형: 독자의 행동을 유도, 강한 메시지',
+    educational: '교육형: 쉬운 설명, 단계적 이해',
+    trendy: '트렌디/감성형: 젊고 감각적, MZ세대 친화적',
+    expert: '전문가형: 깊이 있는 분석, 전문 용어 사용'
+  };
+
+  const pointCount = cardCount - 3; // Cover + Intro + Closing = 3 fixed
+
+  const systemPrompt = `당신은 카드뉴스 콘텐츠 전문 작가입니다. 주어진 주제로 SNS 카드뉴스용 콘텐츠를 JSON 형식으로 만들어주세요.
+톤: ${toneMap[tone]}
+대상: ${audience}
+언어: ${lang === 'ko' ? '한국어' : 'English'}`;
+
+  const userPrompt = `주제: "${topic}"
+
+다음 JSON 구조로 카드뉴스 콘텐츠를 만들어주세요. 반드시 valid JSON만 출력하고 다른 텍스트는 없이.
+
+이미지 규칙:
+- "img" 필드: 이미지가 있으면 Unsplash 검색용 영어 키워드 1~2개, 없으면 null
+- 커버는 항상 이미지 사용
+- 포인트 카드는 내용이 시각적 설명이 필요할 때만 이미지 사용 (통계/데이터 카드는 이미지 없이)
+- 인트로/마무리는 이미지 없음
+
+{
+  "topic": "주제 한 줄 요약",
+  "tag": "카테고리 태그 (예: TREND / TECH / HEALTH)",
+  "cover": {
+    "title": "강렬한 메인 헤드라인 (30자 이내)",
+    "subtitle": "부제목 (50자 이내)",
+    "img": "주제 관련 영어 키워드 (예: artificial intelligence future)"
+  },
+  "intro": {
+    "overline": "섹션 레이블 (예: 배경 / WHY NOW)",
+    "heading": "도입부 핵심 메시지 (40자 이내)",
+    "body": "도입 설명 (100자 이내)",
+    "img": null
+  },
+  "points": [
+    ${Array.from({length: pointCount}, (_, i) => `{
+      "num": "${i+1}",
+      "label": "핵심 포인트 제목 (20자 이내)",
+      "detail": "상세 설명 (80자 이내)",
+      "highlight": "한 줄 핵심 요약 (40자 이내)",
+      "img": "시각적 필요시 영어 키워드, 아니면 null"
+    }`).join(',\n    ')}
+  ],
+  "quote": {
+    "text": "인상적인 인사이트 문장 (60자 이내)",
+    "source": "출처 또는 컨텍스트",
+    "img": null
+  },
+  "closing": {
+    "overline": "마무리 레이블",
+    "heading": "마무리 메시지 (30자 이내)",
+    "items": ["정리 포인트 1", "정리 포인트 2", "정리 포인트 3"],
+    "cta": "행동 유도 버튼 텍스트",
+    "img": null
+  }
+}`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model,
+        max_tokens: 2000,
+        system: systemPrompt,
+        messages: [{ role: 'user', content: userPrompt }]
+      })
+    });
+
+    setProgress(70);
+
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error?.message || `API 오류 ${res.status}`);
+    }
+
+    const data = await res.json();
+    const raw = data.content[0].text;
+
+    setProgress(85);
+    setStatus('카드 렌더링 중...');
+
+    const jsonMatch = raw.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) throw new Error('JSON 파싱 실패');
+    const content = JSON.parse(jsonMatch[0]);
+
+    renderCards(content);
+    setProgress(100);
+    setStatus(`✓ ${cardCount}장 생성 완료 — "${content.topic}"`);
+
+    document.getElementById('download-all-btn').disabled = false;
+    document.getElementById('toolbar-actions').style.display = 'flex';
+    document.getElementById('canvas-title').textContent = content.topic;
+
+    setTimeout(() => setProgress(0), 2000);
+
+  } catch (e) {
+    setStatus(e.message, true);
+    setProgress(0);
+  }
+
+  btn.disabled = false;
+  btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> 카드뉴스 생성';
+}
+
+function imgUrl(keyword) {
+  if (!keyword) return null;
+  const seed = keyword.trim().replace(/\s+/g, '-').toLowerCase();
+  return `https://picsum.photos/seed/${seed}/800/800`;
+}
+
+function renderCards(content) {
+  const grid = document.getElementById('cards-grid');
+  const empty = document.getElementById('empty-state');
+  grid.innerHTML = '';
+  generatedCards = [];
+
+  const theme = currentTheme;
+  const themeClass = theme ? ` ${theme}` : '';
+  const cards = [];
+
+  // 1. Cover
+  const coverImg = imgUrl(content.cover?.img);
+  const coverImgStyle = coverImg ? ` style="background-image:url('${coverImg}')"` : '';
+  const coverImgClass = coverImg ? ' has-img' : '';
+  cards.push({
+    label: '01 — 커버',
+    html: `<div class="news-card card-cover${themeClass}${coverImgClass}" id="card-0"${coverImgStyle}>
+      <div class="brand-mark"><div class="brand-dot"></div><span class="brand-name">CARD NEWS</span></div>
+      <div class="card-number-big">01</div>
+      <div class="card-tag">${esc(content.tag)}</div>
+      <div class="card-title">${esc(content.cover.title)}</div>
+      <div class="card-subtitle">${esc(content.cover.subtitle)}</div>
+      <div class="red-bar"></div>
+    </div>`
+  });
+
+  // 2. Intro
+  cards.push({
+    label: '02 — 도입',
+    html: `<div class="news-card card-intro${themeClass}" id="card-1">
+      <div class="card-overline">${esc(content.intro.overline)}</div>
+      <div class="card-heading">${esc(content.intro.heading)}</div>
+      <div class="card-body">${esc(content.intro.body)}</div>
+    </div>`
+  });
+
+  // 3~N-2. Points
+  content.points.forEach((pt, i) => {
+    const ptImg = imgUrl(pt.img);
+    const ptImgClass = ptImg ? ' has-img' : '';
+    const ptHtml = ptImg
+      ? `<div class="news-card card-point${themeClass}${ptImgClass}" id="card-${i+2}">
+          <div class="point-img-wrap" style="position:relative;overflow:hidden;flex:0 0 45%;">
+            <div class="point-img" style="background-image:url('${ptImg}');background-size:cover;background-position:center;width:100%;height:100%;position:absolute;inset:0;"></div>
+            <div style="position:absolute;inset:0;background:rgba(0,0,0,0.15);"></div>
+            <div class="point-header" style="position:absolute;bottom:0;left:0;right:0;z-index:2;">
+              <div class="point-num">${esc(pt.num)}</div>
+              <div class="point-label">${esc(pt.label)}</div>
+            </div>
+          </div>
+          <div class="point-body" style="flex:1;">
+            <div class="point-detail">${esc(pt.detail)}</div>
+            <div class="point-highlight">${esc(pt.highlight)}</div>
+          </div>
+        </div>`
+      : `<div class="news-card card-point${themeClass}" id="card-${i+2}">
+          <div class="point-header">
+            <div class="point-num">${esc(pt.num)}</div>
+            <div class="point-label">${esc(pt.label)}</div>
+          </div>
+          <div class="point-body">
+            <div class="point-detail">${esc(pt.detail)}</div>
+            <div class="point-highlight">${esc(pt.highlight)}</div>
+          </div>
+        </div>`;
+    cards.push({ label: `0${i+3} — 포인트 ${pt.num}`, html: ptHtml });
+  });
+
+  // Quote
+  const quoteIdx = cards.length;
+  cards.push({
+    label: `0${quoteIdx+1} — 인사이트`,
+    html: `<div class="news-card card-quote${themeClass}" id="card-${quoteIdx}">
+      <div class="quote-mark">"</div>
+      <div class="quote-text">${esc(content.quote.text)}</div>
+      <div class="quote-source">— ${esc(content.quote.source)}</div>
+    </div>`
+  });
+
+  // Closing
+  const closeIdx = cards.length;
+  const itemsHtml = content.closing.items.map(it =>
+    `<div class="close-item"><div class="close-dot"></div><span>${esc(it)}</span></div>`
+  ).join('');
+  cards.push({
+    label: `0${closeIdx+1} — 마무리`,
+    html: `<div class="news-card card-closing${themeClass}" id="card-${closeIdx}">
+      <div class="close-overline">${esc(content.closing.overline)}</div>
+      <div class="close-heading">${esc(content.closing.heading)}</div>
+      <div class="close-items">${itemsHtml}</div>
+      <div class="close-cta">${esc(content.closing.cta)}</div>
+    </div>`
+  });
+
+  cards.forEach((card, i) => {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'card-wrapper';
+    wrapper.innerHTML = `
+      <div class="card-num">${card.label}</div>
+      ${card.html}
+      <button class="card-download-btn" title="PNG 다운로드" onclick="downloadSingle(${i})">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      </button>`;
+    grid.appendChild(wrapper);
+    generatedCards.push(`card-${i}`);
+  });
+
+  empty.style.display = 'none';
+  grid.style.display = 'grid';
+}
+
+function esc(str) {
+  if (!str) return '';
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+async function downloadSingle(idx) {
+  const el = document.getElementById(`card-${idx}`);
+  if (!el) return;
+  const canvas = await html2canvas(el, { scale: 3, useCORS: true, backgroundColor: null });
+  const topic = document.getElementById('topic').value.trim().replace(/\s+/g, '_') || 'card';
+  const a = document.createElement('a');
+  a.download = `${topic}_${String(idx+1).padStart(2,'0')}.png`;
+  a.href = canvas.toDataURL('image/png');
+  a.click();
+}
+
+async function downloadAll() {
+  if (!generatedCards.length) return;
+  const topic = document.getElementById('topic').value.trim().replace(/\s+/g, '_') || 'card';
+  setStatus('PNG 변환 중...');
+  for (let i = 0; i < generatedCards.length; i++) {
+    setProgress(Math.round((i / generatedCards.length) * 100));
+    const el = document.getElementById(generatedCards[i]);
+    if (!el) continue;
+    const canvas = await html2canvas(el, { scale: 3, useCORS: true, backgroundColor: null });
+    const a = document.createElement('a');
+    a.download = `${topic}_${String(i+1).padStart(2,'0')}.png`;
+    a.href = canvas.toDataURL('image/png');
+    a.click();
+    await new Promise(r => setTimeout(r, 300));
+  }
+  setProgress(100);
+  setStatus(`✓ ${generatedCards.length}장 다운로드 완료`);
+  setTimeout(() => setProgress(0), 2000);
+}
+
+function loadDemo() {
+  const topic = document.getElementById('topic').value.trim() || 'AI가 바꾸는 미래 직업';
+  const cardCount = parseInt(document.getElementById('card-count').value);
+  const pointCount = cardCount - 3;
+
+  const demos = [
+    { label:'핵심 포인트 1', detail:'2030년까지 전 세계 직업의 30%가 자동화될 전망이다. 반복 업무 중심 직종이 가장 먼저 영향을 받는다.', highlight:'단순 반복 업무는 AI가 대체한다', img: null },
+    { label:'핵심 포인트 2', detail:'반면 창의성, 감성지능, 복잡한 문제해결이 요구되는 직업은 오히려 수요가 늘어난다.', highlight:'창의·감성 역량이 미래 경쟁력', img: 'creative workspace people' },
+    { label:'핵심 포인트 3', detail:'AI와 협업하는 능력 — 프롬프트 엔지니어링, 데이터 리터러시 — 이 새로운 핵심 스킬로 부상한다.', highlight:'AI 협업 능력이 새 필수 스펙', img: null },
+    { label:'핵심 포인트 4', detail:'의료, 교육, 법률 분야에서는 AI가 보조 역할을 하며 전문가의 생산성을 10배 높이는 방향으로 진화한다.', highlight:'전문직은 AI와 공존·협력한다', img: 'doctor technology medical' },
+    { label:'핵심 포인트 5', detail:'새롭게 생겨나는 직업군 — AI 트레이너, 윤리 감사관, 로봇 코디네이터 — 의 수요가 급증하는 추세다.', highlight:'AI 시대 신직업이 뜨고 있다', img: null },
+  ];
+
+  const content = {
+    topic,
+    tag: 'AI TREND',
+    cover: { title: topic, subtitle: '지금 알지 않으면 뒤처진다 — AI 시대 직업의 모든 것', img: 'artificial intelligence robot future' },
+    intro: {
+      overline: 'WHY NOW',
+      heading: '왜 지금 AI와 직업을 이야기해야 하나',
+      body: 'ChatGPT 등장 이후 2년, 기업들의 AI 도입 속도가 예상보다 3배 빠르다. 준비 없이 맞이하면 기회가 아닌 위기가 된다.',
+      img: null
+    },
+    points: demos.slice(0, pointCount),
+    quote: {
+      text: '미래는 AI를 두려워하는 사람이 아니라, AI와 함께 일하는 방법을 아는 사람의 것이다.',
+      source: '2024 세계경제포럼 미래직업 보고서'
+    },
+    closing: {
+      overline: '핵심 정리',
+      heading: '지금 당장 시작할 수 있는 것',
+      items: ['AI 도구 하나를 골라 매일 30분씩 써보기', '데이터 리터러시 온라인 강의 수강하기', '내 직무에서 AI가 대체할 부분 직접 찾아보기'],
+      cta: '더 알아보기'
+    }
+  };
+
+  renderCards(content);
+  setStatus(`✓ 샘플 ${cardCount}장 렌더링 완료 — API 키 없이 디자인 확인 가능`);
+  document.getElementById('download-all-btn').disabled = false;
+  document.getElementById('toolbar-actions').style.display = 'flex';
+  document.getElementById('canvas-title').textContent = topic;
+}
+
+// Enter key
+document.getElementById('topic').addEventListener('keydown', e => {
+  if (e.key === 'Enter') generateCards();
+});
+</script>
+
+</body>
+</html>
