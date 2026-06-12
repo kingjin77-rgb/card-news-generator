@@ -1045,7 +1045,8 @@ async function generateCards() {
   btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> 카드뉴스 생성';
 }
 
-const _imgSalt = Math.floor(Math.random() * 9000) + 1000;
+let _imgSalt = Math.floor(Math.random() * 9000) + 1000;
+function refreshSalt() { _imgSalt = Math.floor(Math.random() * 9000) + 1000; }
 function imgUrl(keyword) {
   if (!keyword) return null;
   const seed = keyword.trim().replace(/\s+/g, '-').toLowerCase() + '-' + _imgSalt;
@@ -1200,6 +1201,7 @@ async function downloadAll() {
 }
 
 function loadDemo() {
+  refreshSalt();
   const topic = document.getElementById('topic').value.trim() || 'AI가 바꾸는 미래 직업';
   const cardCount = parseInt(document.getElementById('card-count').value);
   const pointCount = cardCount - 3;
