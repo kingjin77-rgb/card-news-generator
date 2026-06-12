@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>COIN CREATOR — 밈코인 메이커</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.ethers.io/lib/ethers-5.7.umd.min.js"></script>
+<script src="https://unpkg.com/@solana/web3.js@1.87.6/lib/index.iife.min.js"></script>
+<style>
+:root {
+  --bg:       #08080F;
+  --surface:  #12121C;
+  --raised:   #1C1C2A;
+  --gold:     #F5C518;
+  --gold-d:   #CFA010;
+  --purple:   #7C3AED;
+  --green:    #10B981;
+  --red:      #EF4444;
+  --white:    #F1F5F9;
+  --gray:     #94A3B8;
+  --border:   #252535;
+  --display:  'Archivo Black', sans-serif;
+  --body:     'Space Grotesk', sans-serif;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: var(--body); background: var(--bg); color: var(--white); min-height: 100vh; }
+
+/* ── Header ── */
+.hdr {
+  border-bottom: 2px solid var(--border);
+  padding: 18px 32px;
+  display: flex; align-items: center; gap: 14px;
+  position: sticky; top: 0; z-index: 100;
+  background: rgba(8,8,15,.96); backdrop-filter: blur(12px);
+}
+.logo { font-family: var(--display); font-size: 22px; letter-spacing: -.02em; }
+.logo .c { color: var(--gold); }
+.badge {
+  background: linear-gradient(135deg, #7C3AED, #A78BFA);
+  font-size: 10px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .12em; padding: 4px 10px; border-radius: 2px;
+}
+
+/* ── Layout ── */
+.main { max-width: 860px; margin: 0 auto; padding: 52px 24px 80px; }
+.hero { text-align: center; margin-bottom: 52px; }
+.hero h1 {
+  font-family: var(--display);
+  font-size: clamp(38px, 7vw, 72px);
+  line-height: 1; margin-bottom: 14px;
+}
+.hero h1 .accent { color: var(--gold); }
+.hero p { color: var(--gray); font-size: 17px; }
+
+/* ── Steps ── */
+.steps { display: flex; margin-bottom: 44px; }
+.step { flex: 1; text-align: center; position: relative; }
+.step::after {
+  content: ''; position: absolute; top: 19px; left: 50%;
+  width: 100%; height: 2px; background: var(--border); z-index: 0;
+}
+.step:last-child::after { display: none; }
+.snum {
+  width: 38px; height: 38px; border-radius: 50%;
+  background: var(--surface); border: 2px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 8px; font-weight: 700; font-size: 14px;
+  position: relative; z-index: 1; color: var(--gray);
+  transition: all .25s;
+}
+.slabel { font-size: 10px; text-transform: uppercase; letter-spacing: .1em; color: var(--gray); }
+.step.active .snum  { border-color: var(--gold); color: var(--gold); }
+.step.active .slabel { color: var(--gold); }
+.step.done .snum   { background: var(--gold); border-color: var(--gold); color: var(--bg); }
+.step.done .slabel { color: var(--white); }
+
+/* ── Sections ── */
+.sec { margin-bottom: 36px; }
+.sec-title {
+  font-size: 11px; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .14em; color: var(--gold); margin-bottom: 16px;
+  display: flex; align-items: center; gap: 10px;
+}
+.sec-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+/* ── Chain cards ── */
+.chain-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.chain-card {
+  border: 2px solid var(--border); background: var(--surface);
+  padding: 28px 20px; cursor: pointer; text-align: center;
+  transition: all .2s; position: relative;
+}
+.chain-card:hover { border-color: var(--gold); transform: translateY(-3px); }
+.chain-card.sel  { border-color: var(--gold); background: var(--raised); }
+.chain-card.sel::after {
+  content: '✓'; position: absolute; top: 12px; right: 14px;
+  color: var(--gold); font-size: 18px; font-weight: 700;
+}
+.ci { font-size: 52px; margin-bottom: 10px; display: block; line-height: 1; }
+.cn { font-family: var(--display); font-size: 18px; margin-bottom: 6px; }
+.cd { color: var(--gray); font-size: 12px; margin-bottom: 10px; }
+.chips { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
+.chip {
+  background: var(--bg); border: 1px solid var(--border);
+  color: var(--gray); font-size: 10px; padding: 3px 9px; border-radius: 999px;
+}
+
+/* ── Network tabs ── */
+.net-tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+.net-tab {
+  padding: 8px 16px; border: 1px solid var(--border); background: none;
+  color: var(--gray); cursor: pointer; font-family: var(--body);
+  font-size: 13px; font-weight: 600; transition: all .2s;
+}
+.net-tab.sel { border-color: var(--gold); color: var(--gold); background: rgba(245,197,24,.06); }
+.alert-info {
+  background: rgba(245,197,24,.08); border: 1px solid rgba(245,197,24,.4);
+  color: var(--gold); padding: 10px 14px; font-size: 13px; margin-top: 10px;
+}
+
+/* ── Form ── */
+.fgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.fg { display: flex; flex-direction: column; gap: 7px; }
+.fg.full { grid-column: 1 / -1; }
+label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: var(--gray); }
+input, textarea, select {
+  background: var(--surface); border: 2px solid var(--border);
+  color: var(--white); padding: 11px 14px;
+  font-family: var(--body); font-size: 15px; width: 100%; outline: none;
+  transition: border-color .2s;
+}
+input:focus, textarea:focus, select:focus { border-color: var(--gold); }
+input::placeholder, textarea::placeholder { color: #4A5568; }
+select option { background: var(--raised); }
+textarea { resize: vertical; min-height: 70px; }
+.hint { font-size: 11px; color: var(--gray); }
+
+/* ── Wallet card ── */
+.wallet-card {
+  background: var(--surface); border: 2px solid var(--border);
+  padding: 20px 24px; display: flex; align-items: center; gap: 14px;
+}
+.wicon {
+  width: 46px; height: 46px; background: var(--raised);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px; flex-shrink: 0;
+}
+.winfo { flex: 1; }
+.wname { font-weight: 700; font-size: 15px; }
+.waddr { font-size: 11px; color: var(--gray); font-family: monospace; margin-top: 3px; }
+.wstatus { display: flex; align-items: center; gap: 10px; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--gray); transition: background .3s; }
+.dot.on { background: var(--green); }
+
+/* ── Buttons ── */
+.btn {
+  padding: 13px 26px; font-family: var(--display); font-size: 14px;
+  border: none; cursor: pointer; transition: all .2s;
+  text-transform: uppercase; letter-spacing: .05em;
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+}
+.btn-primary { background: var(--gold); color: var(--bg); }
+.btn-primary:hover { background: var(--gold-d); transform: translateY(-1px); }
+.btn-primary:disabled { background: #4A4A4A; color: #888; cursor: not-allowed; transform: none; }
+.btn-ghost { background: transparent; color: var(--white); border: 2px solid var(--border); }
+.btn-ghost:hover { border-color: var(--white); }
+.btn-outline { background: transparent; color: var(--gold); border: 2px solid var(--gold); }
+.btn-outline:hover { background: var(--gold); color: var(--bg); }
+.btn-full { width: 100%; }
+
+/* ── Deploy area ── */
+.deploy-area {
+  background: var(--surface); border: 2px solid var(--border);
+  padding: 28px; text-align: center;
+}
+.cost { color: var(--gray); font-size: 13px; margin-bottom: 20px; }
+.btn-row { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+
+/* ── Code block ── */
+.code-wrap { margin-top: 16px; }
+.code-hdr {
+  background: var(--raised); padding: 8px 14px;
+  display: flex; align-items: center; justify-content: space-between;
+  border: 1px solid var(--border); border-bottom: none;
+}
+.code-hdr span { font-size: 12px; color: var(--gray); }
+.code-block {
+  background: #0D1117; border: 1px solid var(--border);
+  padding: 16px 18px; font-family: 'Courier New', monospace;
+  font-size: 12px; line-height: 1.6; color: #C9D1D9;
+  overflow-x: auto; overflow-y: auto;
+  white-space: pre; max-height: 320px;
+  display: none;
+}
+.code-block.vis { display: block; }
+
+/* ── Loading ── */
+.loading { display: none; align-items: center; justify-content: center; gap: 12px; color: var(--gold); padding: 20px; }
+.loading.vis { display: flex; }
+.spin {
+  width: 22px; height: 22px; border: 3px solid var(--border);
+  border-top-color: var(--gold); border-radius: 50%;
+  animation: spin .7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Error ── */
+.err {
+  background: rgba(239,68,68,.1); border: 1px solid var(--red);
+  color: var(--red); padding: 10px 14px; font-size: 13px;
+  margin-top: 12px; display: none;
+}
+.err.vis { display: block; }
+
+/* ── Result ── */
+.result {
+  background: var(--surface); border: 2px solid var(--green);
+  padding: 28px; display: none; margin-top: 32px;
+}
+.result.vis { display: block; }
+.res-title { font-family: var(--display); font-size: 22px; color: var(--green); margin-bottom: 22px; }
+.res-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 11px 0; border-bottom: 1px solid var(--border);
+}
+.res-row:last-child { border-bottom: none; }
+.res-key { font-size: 11px; text-transform: uppercase; letter-spacing: .1em; color: var(--gray); }
+.res-val { font-family: monospace; font-size: 13px; color: var(--white); display: flex; align-items: center; gap: 8px; }
+.copy-btn {
+  background: var(--raised); border: none; color: var(--gray);
+  cursor: pointer; padding: 3px 9px; font-size: 11px; transition: color .2s;
+}
+.copy-btn:hover { color: var(--gold); }
+.expl-links { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 18px; }
+.expl-link {
+  padding: 7px 14px; border: 1px solid var(--border); color: var(--gray);
+  text-decoration: none; font-size: 12px; transition: all .2s;
+}
+.expl-link:hover { border-color: var(--gold); color: var(--gold); }
+
+/* ── Responsive ── */
+@media (max-width: 580px) {
+  .chain-grid { grid-template-columns: 1fr; }
+  .fgrid { grid-template-columns: 1fr; }
+  .hdr { padding: 14px 16px; }
+  .main { padding: 28px 14px 60px; }
+}
+</style>
+</head>
+<body>
+
+<header class="hdr">
+  <div class="logo"><span class="c">COIN</span> CREATOR</div>
+  <div class="badge">밈코인 메이커</div>
+</header>
+
+<main class="main">
+
+  <div class="hero">
+    <h1>나만의 <span class="accent">밈코인</span><br>지금 만들기</h1>
+    <p>Solana 또는 EVM 체인에 나만의 토큰을 배포하세요</p>
+  </div>
+
+  <!-- Progress -->
+  <div class="steps">
+    <div class="step active" id="s1"><div class="snum">1</div><div class="slabel">체인</div></div>
+    <div class="step" id="s2"><div class="snum">2</div><div class="slabel">토큰 설정</div></div>
+    <div class="step" id="s3"><div class="snum">3</div><div class="slabel">지갑</div></div>
+    <div class="step" id="s4"><div class="snum">4</div><div class="slabel">배포</div></div>
+  </div>
+
+  <!-- 1. Chain Selection -->
+  <div class="sec">
+    <div class="sec-title">01 &nbsp; 체인 선택</div>
+    <div class="chain-grid">
+      <div class="chain-card" id="cardEVM" onclick="pickChain('evm')">
+        <span class="ci">⟠</span>
+        <div class="cn">EVM 체인</div>
+        <div class="cd">Ethereum, BSC, Polygon, Base 등</div>
+        <div class="chips">
+          <span class="chip">Ethereum</span>
+          <span class="chip">BSC</span>
+          <span class="chip">Polygon</span>
+          <span class="chip">Base</span>
+          <span class="chip">Arbitrum</span>
+        </div>
+      </div>
+      <div class="chain-card" id="cardSOL" onclick="pickChain('sol')">
+        <span class="ci">◎</span>
+        <div class="cn">Solana</div>
+        <div class="cd">빠르고 저렴한 SOL 체인</div>
+        <div class="chips">
+          <span class="chip">Mainnet-Beta</span>
+          <span class="chip">Devnet</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- EVM network picker -->
+  <div class="sec" id="evmNets" style="display:none">
+    <div class="sec-title">네트워크</div>
+    <div class="net-tabs">
+      <button class="net-tab sel" onclick="pickNet('ethereum',this)">Ethereum</button>
+      <button class="net-tab" onclick="pickNet('bsc',this)">BSC</button>
+      <button class="net-tab" onclick="pickNet('polygon',this)">Polygon</button>
+      <button class="net-tab" onclick="pickNet('base',this)">Base</button>
+      <button class="net-tab" onclick="pickNet('arbitrum',this)">Arbitrum</button>
+      <button class="net-tab" onclick="pickNet('sepolia',this)">Sepolia (테스트)</button>
+    </div>
+  </div>
+
+  <!-- Solana network picker -->
+  <div class="sec" id="solNets" style="display:none">
+    <div class="sec-title">네트워크</div>
+    <div class="net-tabs">
+      <button class="net-tab" onclick="pickSolNet('mainnet',this)">Mainnet-Beta</button>
+      <button class="net-tab sel" onclick="pickSolNet('devnet',this)">Devnet (테스트)</button>
+    </div>
+    <div class="alert-info">처음이라면 Devnet으로 먼저 테스트하세요. Devnet SOL은 무료입니다.</div>
+  </div>
+
+  <!-- 2. Token Config -->
+  <div class="sec" id="tokenSec" style="display:none">
+    <div class="sec-title">02 &nbsp; 토큰 설정</div>
+    <div class="fgrid">
+      <div class="fg">
+        <label>토큰 이름 *</label>
+        <input type="text" id="tName" placeholder="예: Doge Inu" maxlength="32">
+      </div>
+      <div class="fg">
+        <label>토큰 심볼 *</label>
+        <input type="text" id="tSym" placeholder="예: DINU" maxlength="10" oninput="this.value=this.value.toUpperCase()">
+      </div>
+      <div class="fg">
+        <label>소수점 자리수</label>
+        <select id="tDec">
+          <option value="18">18 — EVM 기본</option>
+          <option value="9">9 — Solana 기본</option>
+          <option value="6">6</option>
+          <option value="0">0 (정수)</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label>총 발행량 *</label>
+        <input type="number" id="tSupply" placeholder="1000000000" min="1" step="1">
+      </div>
+      <div class="fg full">
+        <label>설명 (선택)</label>
+        <textarea id="tDesc" placeholder="이 토큰에 대한 설명..."></textarea>
+      </div>
+      <div class="fg full">
+        <label>로고 이미지 URL (선택)</label>
+        <input type="url" id="tLogo" placeholder="https://example.com/logo.png">
+        <div class="hint">Solana: Token Metadata에 포함 | EVM: 소스 코드 주석에 포함</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. Wallet -->
+  <div class="sec" id="walletSec" style="display:none">
+    <div class="sec-title">03 &nbsp; 지갑 연결</div>
+
+    <div id="evmWallet">
+      <div class="wallet-card">
+        <div class="wicon">🦊</div>
+        <div class="winfo">
+          <div class="wname">MetaMask</div>
+          <div class="waddr" id="evmAddr">연결되지 않음</div>
+        </div>
+        <div class="wstatus">
+          <div class="dot" id="evmDot"></div>
+          <button class="btn btn-outline" onclick="connectMM()" id="mmBtn">연결하기</button>
+        </div>
+      </div>
+      <div class="hint" style="margin-top:8px">
+        MetaMask가 필요합니다 — <a href="https://metamask.io" target="_blank" style="color:var(--gold)">설치하기</a>
+      </div>
+    </div>
+
+    <div id="solWallet" style="display:none">
+      <div class="wallet-card">
+        <div class="wicon">👻</div>
+        <div class="winfo">
+          <div class="wname">Phantom</div>
+          <div class="waddr" id="solAddr">연결되지 않음</div>
+        </div>
+        <div class="wstatus">
+          <div class="dot" id="solDot"></div>
+          <button class="btn btn-outline" onclick="connectPhantom()" id="phBtn">연결하기</button>
+        </div>
+      </div>
+      <div class="hint" style="margin-top:8px">
+        Phantom 지갑이 필요합니다 — <a href="https://phantom.app" target="_blank" style="color:var(--gold)">설치하기</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. Deploy -->
+  <div class="sec" id="deploySec" style="display:none">
+    <div class="sec-title">04 &nbsp; 배포</div>
+
+    <!-- EVM -->
+    <div id="evmDeploy">
+      <div class="deploy-area">
+        <div class="cost">예상 가스비: 0.001 ~ 0.01 ETH (네트워크 상황에 따라 변동)</div>
+        <div class="btn-row">
+          <button class="btn btn-ghost" onclick="toggleCode()">📄 코드 확인</button>
+          <button class="btn btn-outline" onclick="openRemix()">🔧 Remix로 열기</button>
+          <button class="btn btn-primary" onclick="deployEVM()" id="evmDeployBtn">🚀 MetaMask로 배포</button>
+        </div>
+
+        <div class="code-wrap" id="codeWrap" style="display:none">
+          <div class="code-hdr">
+            <span>📄 Solidity 소스 코드</span>
+            <button class="btn btn-ghost" style="padding:4px 10px;font-size:11px" onclick="copyCode()">복사</button>
+          </div>
+          <div class="code-block vis" id="codeBlock"></div>
+        </div>
+
+        <div class="loading" id="evmLoad"><div class="spin"></div><span>배포 중...</span></div>
+        <div class="err" id="evmErr"></div>
+      </div>
+    </div>
+
+    <!-- Solana -->
+    <div id="solDeploy" style="display:none">
+      <div class="deploy-area">
+        <div class="cost">예상 비용: ~0.01 SOL (렌트 + 수수료)</div>
+        <button class="btn btn-primary btn-full" onclick="deploySolana()" id="solDeployBtn">
+          ◎ &nbsp; Solana에 배포하기
+        </button>
+        <div class="loading" id="solLoad"><div class="spin"></div><span>Solana에 배포 중...</span></div>
+        <div class="err" id="solErr"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Result -->
+  <div class="result" id="resultCard">
+    <div class="res-title">🎉 &nbsp; 토큰 배포 완료!</div>
+    <div id="resRows"></div>
+    <div class="expl-links" id="explLinks"></div>
+  </div>
+
+</main>
+
+<script>
+// ────────────────────────────────────────
+// State
+// ────────────────────────────────────────
+let chain = null;
+let evmNet = 'ethereum';
+let solNet = 'devnet';
+let evmOk  = false;
+let solOk  = false;
+
+const NETS = {
+  ethereum: { name: 'Ethereum Mainnet',     chainId: '0x1',        hex: 1,     explorer: 'https://etherscan.io' },
+  bsc:      { name: 'BNB Smart Chain',       chainId: '0x38',       hex: 56,    explorer: 'https://bscscan.com' },
+  polygon:  { name: 'Polygon',               chainId: '0x89',       hex: 137,   explorer: 'https://polygonscan.com' },
+  base:     { name: 'Base',                  chainId: '0x2105',     hex: 8453,  explorer: 'https://basescan.org' },
+  arbitrum: { name: 'Arbitrum One',          chainId: '0xa4b1',     hex: 42161, explorer: 'https://arbiscan.io' },
+  sepolia:  { name: 'Sepolia Testnet',        chainId: '0xaa36a7',   hex: 11155111, explorer: 'https://sepolia.etherscan.io' },
+};
+
+// ────────────────────────────────────────
+// Step UI
+// ────────────────────────────────────────
+function setSteps(active) {
+  [1,2,3,4].forEach(i => {
+    const el = document.getElementById('s' + i);
+    el.className = 'step' + (i < active ? ' done' : i === active ? ' active' : '');
+  });
+}
+
+// ────────────────────────────────────────
+// Chain picker
+// ────────────────────────────────────────
+function pickChain(c) {
+  chain = c;
+  document.getElementById('cardEVM').classList.toggle('sel', c === 'evm');
+  document.getElementById('cardSOL').classList.toggle('sel', c === 'sol');
+
+  show('evmNets',   c === 'evm');
+  show('solNets',   c === 'sol');
+  show('tokenSec',  true);
+  show('walletSec', true);
+  show('deploySec', true);
+  show('evmWallet', c === 'evm');
+  show('solWallet', c === 'sol');
+  show('evmDeploy', c === 'evm');
+  show('solDeploy', c === 'sol');
+
+  document.getElementById('tDec').value = c === 'evm' ? '18' : '9';
+  setSteps(2);
+  document.getElementById('tokenSec').scrollIntoView({ behavior: 'smooth' });
+}
+
+function pickNet(net, btn) {
+  evmNet = net;
+  document.querySelectorAll('#evmNets .net-tab').forEach(t => t.classList.remove('sel'));
+  btn.classList.add('sel');
+}
+
+function pickSolNet(net, btn) {
+  solNet = net;
+  document.querySelectorAll('#solNets .net-tab').forEach(t => t.classList.remove('sel'));
+  btn.classList.add('sel');
+}
+
+// ────────────────────────────────────────
+// Wallet connections
+// ────────────────────────────────────────
+async function connectMM() {
+  if (!window.ethereum) {
+    alert('MetaMask가 설치되지 않았습니다.\nhttps://metamask.io 에서 설치해 주세요.');
+    return;
+  }
+  try {
+    const [addr] = await window.ethereum.request({ method: 'eth_requestAccounts' });
+    evmOk = true;
+    document.getElementById('evmAddr').textContent = addr.slice(0,6) + '…' + addr.slice(-4);
+    document.getElementById('evmDot').classList.add('on');
+    const btn = document.getElementById('mmBtn');
+    btn.textContent = '연결됨 ✓'; btn.disabled = true;
+    setSteps(3);
+    try {
+      await window.ethereum.request({
+        method: 'wallet_switchEthereumChain',
+        params: [{ chainId: NETS[evmNet].chainId }]
+      });
+    } catch (_) {}
+  } catch (e) { console.error(e); }
+}
+
+async function connectPhantom() {
+  if (!window.solana || !window.solana.isPhantom) {
+    alert('Phantom 지갑이 설치되지 않았습니다.\nhttps://phantom.app 에서 설치해 주세요.');
+    return;
+  }
+  try {
+    const res = await window.solana.connect();
+    solOk = true;
+    const addr = res.publicKey.toString();
+    document.getElementById('solAddr').textContent = addr.slice(0,6) + '…' + addr.slice(-4);
+    document.getElementById('solDot').classList.add('on');
+    const btn = document.getElementById('phBtn');
+    btn.textContent = '연결됨 ✓'; btn.disabled = true;
+    setSteps(3);
+  } catch (e) { console.error(e); }
+}
+
+// ────────────────────────────────────────
+// Solidity code generation
+// ────────────────────────────────────────
+function genSolidity() {
+  const name    = v('tName')   || 'MemeToken';
+  const sym     = v('tSym')    || 'MEME';
+  const dec     = v('tDec')    || '18';
+  const supply  = v('tSupply') || '1000000000';
+  const desc    = v('tDesc')   || '밈코인 토큰';
+  const logo    = v('tLogo');
+  const cname   = sym.replace(/[^A-Za-z0-9]/g,'') + 'Token';
+
+  return `// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.20;
+
+/**
+ * @title   ${name} (${sym})
+ * @notice  ${desc}${logo ? '\n * @custom:logo  ' + logo : ''}
+ * @dev     Created with COIN CREATOR
+ *          https://github.com/kingjin77-rgb/coin-creator
+ */
+contract ${cname} {
+    string  public  name        = "${name}";
+    string  public  symbol      = "${sym}";
+    uint8   public  decimals    = ${dec};
+    uint256 public  totalSupply;
+
+    mapping(address => uint256)                     public balanceOf;
+    mapping(address => mapping(address => uint256)) public allowance;
+
+    event Transfer(address indexed from, address indexed to,       uint256 value);
+    event Approval(address indexed owner, address indexed spender, uint256 value);
+
+    constructor() {
+        totalSupply           = ${supply} * 10 ** ${dec};
+        balanceOf[msg.sender] = totalSupply;
+        emit Transfer(address(0), msg.sender, totalSupply);
+    }
+
+    function transfer(address to, uint256 value) external returns (bool) {
+        require(balanceOf[msg.sender] >= value, "ERC20: insufficient balance");
+        unchecked {
+            balanceOf[msg.sender] -= value;
+            balanceOf[to]         += value;
+        }
+        emit Transfer(msg.sender, to, value);
+        return true;
+    }
+
+    function approve(address spender, uint256 value) external returns (bool) {
+        allowance[msg.sender][spender] = value;
+        emit Approval(msg.sender, spender, value);
+        return true;
+    }
+
+    function transferFrom(address from, address to, uint256 value) external returns (bool) {
+        require(balanceOf[from] >= value, "ERC20: insufficient balance");
+        uint256 allowed = allowance[from][msg.sender];
+        if (allowed != type(uint256).max) {
+            require(allowed >= value, "ERC20: insufficient allowance");
+            unchecked { allowance[from][msg.sender] = allowed - value; }
+        }
+        unchecked {
+            balanceOf[from] -= value;
+            balanceOf[to]   += value;
+        }
+        emit Transfer(from, to, value);
+        return true;
+    }
+}`;
+}
+
+function toggleCode() {
+  const wrap  = document.getElementById('codeWrap');
+  const block = document.getElementById('codeBlock');
+  if (wrap.style.display === 'none') {
+    block.textContent = genSolidity();
+    wrap.style.display = 'block';
+  } else {
+    wrap.style.display = 'none';
+  }
+}
+
+function copyCode() {
+  navigator.clipboard.writeText(genSolidity()).then(() => alert('복사됨!'));
+}
+
+function openRemix() {
+  const code    = genSolidity();
+  const encoded = btoa(unescape(encodeURIComponent(code)));
+  window.open(`https://remix.ethereum.org/#code=${encoded}&lang=solidity&optimize=true&version=0.8.20`, '_blank');
+}
+
+// ────────────────────────────────────────
+// EVM deploy (MetaMask)
+// ────────────────────────────────────────
+async function deployEVM() {
+  if (!evmOk) { alert('먼저 MetaMask를 연결해 주세요.'); return; }
+  const name = v('tName'), sym = v('tSym'), supply = v('tSupply');
+  if (!name || !sym || !supply) { showErr('evmErr','토큰 이름, 심볼, 발행량을 입력해 주세요.'); return; }
+
+  /*
+   * Browser-based EVM deployment requires compiled bytecode.
+   * We open Remix with the generated source so the user can compile
+   * and deploy with one click — the most transparent approach.
+   */
+  const go = confirm(
+    'MetaMask 직접 배포는 컴파일된 바이트코드가 필요합니다.\n\n' +
+    'Remix IDE에서 자동 컴파일 후 MetaMask로 배포하시겠습니까?\n\n' +
+    '[ 확인 ] → Remix 열기\n' +
+    '  Remix에서: Compile ▶ Deploy ▶ MetaMask 서명'
+  );
+  if (go) openRemix();
+}
+
+// ────────────────────────────────────────
+// Solana deploy (Phantom + web3.js)
+// ────────────────────────────────────────
+async function deploySolana() {
+  if (!solOk) { alert('먼저 Phantom 지갑을 연결해 주세요.'); return; }
+  const name = v('tName'), sym = v('tSym'), supply = v('tSupply'), dec = parseInt(v('tDec'));
+  if (!name || !sym || !supply) { showErr('solErr','토큰 이름, 심볼, 발행량을 입력해 주세요.'); return; }
+
+  setBusy('solDeployBtn', true);
+  showLoad('solLoad', true);
+  showErr('solErr', '');
+
+  try {
+    const {
+      Connection, PublicKey, Keypair, Transaction, SystemProgram
+    } = solanaWeb3;
+
+    const endpoint  = solNet === 'mainnet'
+      ? 'https://api.mainnet-beta.solana.com'
+      : 'https://api.devnet.solana.com';
+    const conn = new Connection(endpoint, 'confirmed');
+
+    const TOKEN_PROG   = new PublicKey('TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA');
+    const ATA_PROG     = new PublicKey('ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJe1bJ8');
+    const SYSVAR_RENT  = new PublicKey('SysvarRent111111111111111111111111111111111');
+    const SYS_PROG     = SystemProgram.programId;
+    const MINT_SIZE    = 82;
+
+    const payerPk  = new PublicKey(window.solana.publicKey.toString());
+    const mintKp   = Keypair.generate();
+    const mintPk   = mintKp.publicKey;
+
+    // ATA address (PDA)
+    const [ataPk] = await PublicKey.findProgramAddress(
+      [payerPk.toBytes(), TOKEN_PROG.toBytes(), mintPk.toBytes()],
+      ATA_PROG
+    );
+
+    const lamports = await conn.getMinimumBalanceForRentExemption(MINT_SIZE);
+
+    // Instruction: SystemProgram.createAccount
+    const createAccIx = SystemProgram.createAccount({
+      fromPubkey: payerPk,
+      newAccountPubkey: mintPk,
+      lamports,
+      space: MINT_SIZE,
+      programId: TOKEN_PROG,
+    });
+
+    // Instruction: Token InitializeMint (discriminant = 0)
+    const initData = new Uint8Array(67);
+    initData[0] = 0;           // InitializeMint
+    initData[1] = dec;         // decimals
+    initData.set(payerPk.toBytes(), 2);  // mint authority
+    initData[34] = 0;          // no freeze authority
+    const initMintIx = {
+      keys: [
+        { pubkey: mintPk,     isSigner: false, isWritable: true },
+        { pubkey: SYSVAR_RENT, isSigner: false, isWritable: false },
+      ],
+      programId: TOKEN_PROG,
+      data: initData,
+    };
+
+    // Instruction: ATA create
+    const createATAIx = {
+      keys: [
+        { pubkey: payerPk,  isSigner: true,  isWritable: true },
+        { pubkey: ataPk,    isSigner: false, isWritable: true },
+        { pubkey: payerPk,  isSigner: false, isWritable: false },
+        { pubkey: mintPk,   isSigner: false, isWritable: false },
+        { pubkey: SYS_PROG, isSigner: false, isWritable: false },
+        { pubkey: TOKEN_PROG, isSigner: false, isWritable: false },
+        { pubkey: SYSVAR_RENT, isSigner: false, isWritable: false },
+      ],
+      programId: ATA_PROG,
+      data: new Uint8Array(0),
+    };
+
+    // Instruction: Token MintTo (discriminant = 7)
+    const rawAmt  = BigInt(supply) * (BigInt(10) ** BigInt(dec));
+    const mintData = new Uint8Array(9);
+    mintData[0] = 7; // MintTo
+    for (let i = 0; i < 8; i++) {
+      mintData[1 + i] = Number((rawAmt >> BigInt(i * 8)) & BigInt(0xFF));
+    }
+    const mintToIx = {
+      keys: [
+        { pubkey: mintPk,   isSigner: false, isWritable: true },
+        { pubkey: ataPk,    isSigner: false, isWritable: true },
+        { pubkey: payerPk,  isSigner: false, isWritable: false },
+      ],
+      programId: TOKEN_PROG,
+      data: mintData,
+    };
+
+    const { blockhash } = await conn.getLatestBlockhash();
+    const tx = new Transaction({ recentBlockhash: blockhash, feePayer: payerPk });
+    tx.add(createAccIx, initMintIx, createATAIx, mintToIx);
+    tx.partialSign(mintKp);
+
+    const signed = await window.solana.signTransaction(tx);
+    const sig    = await conn.sendRawTransaction(signed.serialize());
+    await conn.confirmTransaction(sig, 'confirmed');
+
+    showResult({ chain:'sol', name, sym, dec, supply, mint: mintPk.toString(), ata: ataPk.toString(), sig, net: solNet });
+  } catch (e) {
+    console.error(e);
+    showErr('solErr', '오류: ' + (e.message || String(e)));
+  } finally {
+    setBusy('solDeployBtn', false);
+    showLoad('solLoad', false);
+  }
+}
+
+// ────────────────────────────────────────
+// Result display
+// ────────────────────────────────────────
+function showResult(d) {
+  const card = document.getElementById('resultCard');
+  const rows = document.getElementById('resRows');
+  const expl = document.getElementById('explLinks');
+  card.classList.add('vis');
+
+  const N = d.name, SYM = d.sym;
+
+  if (d.chain === 'sol') {
+    const cluster = d.net === 'mainnet' ? '' : '?cluster=devnet';
+    const solscan = 'https://solscan.io';
+    rows.innerHTML = row('토큰 이름', `${N} (${SYM})`) +
+      row('Mint Address', d.mint, true) +
+      row('발행량', Number(d.supply).toLocaleString() + ' ' + SYM) +
+      row('소수점', d.dec) +
+      row('네트워크', d.net === 'mainnet' ? 'Solana Mainnet-Beta' : 'Solana Devnet') +
+      row('트랜잭션', d.sig.slice(0,28)+'…', true, d.sig);
+
+    expl.innerHTML =
+      `<a href="${solscan}/token/${d.mint}${cluster}" target="_blank" class="expl-link">Solscan 토큰 보기</a>` +
+      `<a href="${solscan}/tx/${d.sig}${cluster}" target="_blank" class="expl-link">트랜잭션 확인</a>`;
+  }
+
+  card.scrollIntoView({ behavior: 'smooth' });
+  setSteps(4);
+}
+
+function row(key, val, copy=false, rawVal) {
+  const r = rawVal || val;
+  return `<div class="res-row">
+    <span class="res-key">${key}</span>
+    <span class="res-val">${val}${copy ? ` <button class="copy-btn" onclick="clip('${r}')">복사</button>` : ''}</span>
+  </div>`;
+}
+
+function clip(text) {
+  navigator.clipboard.writeText(text).then(() => { /* silent */ });
+}
+
+// ────────────────────────────────────────
+// Utilities
+// ────────────────────────────────────────
+function v(id)         { return document.getElementById(id).value.trim(); }
+function show(id, vis) { document.getElementById(id).style.display = vis ? 'block' : 'none'; }
+function showLoad(id, vis) { document.getElementById(id).classList.toggle('vis', vis); }
+function showErr(id, msg) {
+  const el = document.getElementById(id);
+  el.textContent = msg; el.classList.toggle('vis', !!msg);
+}
+function setBusy(id, on) { document.getElementById(id).disabled = on; }
+</script>
+</body>
+</html>
