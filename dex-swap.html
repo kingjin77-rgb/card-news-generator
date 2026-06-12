@@ -524,9 +524,14 @@ async function connectMM() {
 // ─────────────────────────────────────
 // Solana token lookup (via Solana RPC)
 // ─────────────────────────────────────
+function isSolanaAddress(addr) {
+  return /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(addr);
+}
+
 async function lookupSolToken() {
   const mint = document.getElementById('solMint').value.trim();
   if (!mint) return;
+  if (!isSolanaAddress(mint)) { showErr('solErr', '유효하지 않은 Solana 주소입니다 (Base58, 32-44자).'); return; }
   showErr('solErr', '');
   showLoad('solLoad', true);
 
@@ -572,7 +577,7 @@ async function lookupSolToken() {
 // ─────────────────────────────────────
 async function lookupEVMToken() {
   const addr = document.getElementById('evmContract').value.trim();
-  if (!addr || !addr.startsWith('0x')) { showErr('evmErr', '올바른 컨트랙트 주소를 입력해 주세요 (0x로 시작)'); return; }
+  if (!addr || !/^0x[0-9a-fA-F]{40}$/.test(addr)) { showErr('evmErr', '올바른 EVM 주소를 입력해 주세요 (0x + 40자리 hex)'); return; }
   if (!window.ethereum) { showErr('evmErr', 'MetaMask를 연결해 주세요'); return; }
 
   try {

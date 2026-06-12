@@ -417,6 +417,20 @@ footer{
 </footer>
 
 <script>
+// ── URL sanitizer (prevent javascript: injection) ──
+function safeUrl(url) {
+  if (!url || url === '#') return '#';
+  try {
+    const u = new URL(url);
+    return (u.protocol === 'https:' || u.protocol === 'http:') ? url : '#';
+  } catch { return '#'; }
+}
+
+// Validate base58-like token address (Solana: 32-44 alphanumeric chars)
+function safeAddr(addr) {
+  return /^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(addr) ? addr : '';
+}
+
 // ── Edit panel ──
 function toggleEdit(){document.getElementById('editPanel').classList.toggle('open');}
 function hideBanner(){document.querySelector('.edit-banner').style.display='none';}
@@ -441,16 +455,16 @@ function applySettings(){
   document.getElementById('footerName').textContent  = '🌙 ' + name + ' (' + sym + ')';
   document.getElementById('swapOutToken').textContent= sym;
   document.getElementById('rateToken').textContent   = sym;
-  document.getElementById('ftw').href = tw;
-  document.getElementById('ftg').href = tg;
+  document.getElementById('ftw').href = safeUrl(tw);
+  document.getElementById('ftg').href = safeUrl(tg);
 
-  if(addr){
-    document.getElementById('contractAddr').textContent = addr;
-    // Update Jupiter/Raydium links with mint address
-    document.getElementById('jupiterLink').href = 'https://jup.ag/swap/SOL-' + addr;
-    document.getElementById('raydiumLink').href = 'https://raydium.io/swap/?inputCurrency=sol&outputCurrency=' + addr;
+  const cleanAddr = safeAddr(addr);
+  if(cleanAddr){
+    document.getElementById('contractAddr').textContent = cleanAddr;
+    document.getElementById('jupiterLink').href = 'https://jup.ag/swap/SOL-' + cleanAddr;
+    document.getElementById('raydiumLink').href = 'https://raydium.io/swap/?inputCurrency=sol&outputCurrency=' + cleanAddr;
   } else {
-    document.getElementById('contractAddr').textContent = '배포 후 주소가 표시됩니다';
+    document.getElementById('contractAddr').textContent = addr ? '⚠ 유효하지 않은 주소' : '배포 후 주소가 표시됩니다';
   }
 }
 
