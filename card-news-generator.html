@@ -748,7 +748,18 @@
 
         <div>
           <label for="topic">주제</label>
-          <input type="text" id="topic" placeholder="예: AI가 바꾸는 미래 직업" />
+          <div style="display:flex; gap:0; align-items:stretch;">
+            <input type="text" id="topic" placeholder="예: AI가 바꾸는 미래 직업" style="flex:1;" />
+            <button class="obs-import-btn-small" id="obs-import-btn" onclick="openNoteModal()" title="Obsidian 노트 불러오기">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
+              노트
+            </button>
+          </div>
+          <div id="note-source-indicator" class="note-source-badge">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
+            <span id="note-source-name"></span>
+            <button onclick="clearNoteSource()">✕</button>
+          </div>
         </div>
 
         <div>
@@ -818,6 +829,28 @@
       </div>
     </div>
 
+    <div class="obsidian-section">
+      <div class="obs-section-header">
+        <div class="sidebar-section-label" style="margin-bottom:0;">Obsidian 연동</div>
+        <span id="obs-status-dot" class="obs-status-dot obs-status-off"></span>
+      </div>
+      <div class="field-group">
+        <div>
+          <label for="obs-url">REST API URL</label>
+          <input type="text" id="obs-url" value="http://localhost:27123" placeholder="http://localhost:27123" />
+        </div>
+        <div>
+          <label for="obs-key">API Key (선택)</label>
+          <input type="password" id="obs-key" placeholder="Obsidian Local REST API 키" />
+        </div>
+        <button class="btn-secondary" onclick="testObsidianConnection()" id="obs-test-btn" style="font-size:11px; padding:8px 14px; justify-content:center;">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          연결 테스트
+        </button>
+        <div id="obs-test-msg" style="font-size:11px; color:var(--text-secondary); min-height:16px;"></div>
+      </div>
+    </div>
+
     <div>
       <div class="progress-bar"><div class="progress-fill" id="progress"></div></div>
       <div class="status-msg" id="status-msg">주제를 입력하고 생성을 시작하세요.</div>
@@ -835,6 +868,10 @@
       <button class="btn-secondary" id="download-all-btn" onclick="downloadAll()" disabled>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
         전체 PNG 다운로드
+      </button>
+      <button class="btn-obs-save" id="obs-save-btn" onclick="saveToObsidian(lastGeneratedContent)">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+        Obsidian에 저장
       </button>
     </div>
 
@@ -881,6 +918,163 @@
   .theme-green .card-closing .close-dot { background: #16A34A; }
   .theme-green .card-closing .close-cta { background: #14532D; }
   .theme-green .card-quote { background: #16A34A; }
+</style>
+
+<style>
+/* ── Obsidian Integration ── */
+.obs-status-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+.obs-status-on  { background: #16A34A; }
+.obs-status-off { background: var(--border-medium); }
+
+.obsidian-section {
+  border: 1px solid #C4B5FD;
+  padding: 14px;
+  background: #FAFAFE;
+}
+.obs-section-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.obs-import-btn-small {
+  background: #7C3AED;
+  color: #fff;
+  border: none;
+  padding: 0 10px;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+  display: none;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  font-family: var(--font-body);
+  letter-spacing: 0.04em;
+}
+.obs-import-btn-small:hover { background: #6D28D9; }
+
+.note-source-badge {
+  display: none;
+  margin-top: 6px;
+  padding: 6px 10px;
+  background: #F5F3FF;
+  border: 1px solid #C4B5FD;
+  font-size: 11px;
+  color: #7C3AED;
+  font-weight: 600;
+  align-items: center;
+  gap: 6px;
+}
+.note-source-badge button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #A78BFA;
+  font-size: 11px;
+  padding: 0;
+  margin-left: auto;
+}
+.note-source-badge button:hover { color: #7C3AED; }
+
+.btn-obs-save {
+  display: none;
+  width: 100%;
+  background: #7C3AED;
+  color: var(--white);
+  border: 2px solid #7C3AED;
+  border-radius: 0;
+  padding: 10px 24px;
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  transition: background 0.15s;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.btn-obs-save:hover { background: #6D28D9; border-color: #6D28D9; }
+.btn-obs-save:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* Note modal */
+.note-modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  z-index: 1000;
+  align-items: center;
+  justify-content: center;
+}
+.note-modal-inner {
+  background: var(--white);
+  border: 2px solid var(--black);
+  width: 520px;
+  max-width: 95vw;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+}
+.note-modal-header {
+  padding: 16px 20px;
+  border-bottom: 2px solid var(--black);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.note-modal-title {
+  font-family: var(--font-display);
+  font-size: 16px;
+  letter-spacing: -0.01em;
+}
+.note-modal-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 20px;
+  color: var(--text-secondary);
+  line-height: 1;
+  padding: 0 4px;
+}
+.note-modal-close:hover { color: var(--black); }
+.note-modal-search {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.note-modal-search input {
+  width: 100%;
+  border: 2px solid var(--border-medium);
+  padding: 8px 12px;
+  font-size: 13px;
+  font-family: var(--font-body);
+  outline: none;
+  border-radius: 0;
+  background: var(--white);
+}
+.note-modal-search input:focus { border-color: #7C3AED; }
+.note-list {
+  overflow-y: auto;
+  flex: 1;
+}
+.note-list-item {
+  padding: 12px 20px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--border-subtle);
+  transition: background 0.1s;
+}
+.note-list-item:hover { background: #F5F3FF; }
+.note-item-title { font-size: 13px; font-weight: 600; color: var(--black); }
+.note-item-path  { font-size: 11px; color: var(--text-tertiary); margin-top: 2px; }
 </style>
 
 <script>
@@ -945,7 +1139,11 @@ async function generateCards() {
 대상: ${audience}
 언어: ${lang === 'ko' ? '한국어' : 'English'}`;
 
-  const userPrompt = `주제: "${topic}"
+  const noteContext = loadedNoteContent
+    ? `\n\n[참고 노트]\n${loadedNoteContent.substring(0, 3000)}\n\n위 노트 내용을 바탕으로 카드뉴스를 작성해주세요.`
+    : '';
+
+  const userPrompt = `주제: "${topic}"${noteContext}
 
 다음 JSON 구조로 카드뉴스 콘텐츠를 만들어주세요. 반드시 valid JSON만 출력하고 다른 텍스트는 없이.
 
@@ -1025,6 +1223,7 @@ async function generateCards() {
     const jsonMatch = raw.match(/\{[\s\S]*\}/);
     if (!jsonMatch) throw new Error('JSON 파싱 실패');
     const content = JSON.parse(jsonMatch[0]);
+    lastGeneratedContent = content;
 
     renderCards(content);
     setProgress(100);
@@ -1033,6 +1232,7 @@ async function generateCards() {
     document.getElementById('download-all-btn').disabled = false;
     document.getElementById('toolbar-actions').style.display = 'flex';
     document.getElementById('canvas-title').textContent = content.topic;
+    if (obsidianConnected) document.getElementById('obs-save-btn').style.display = 'flex';
 
     setTimeout(() => setProgress(0), 2000);
 
@@ -1248,7 +1448,236 @@ function loadDemo() {
 document.getElementById('topic').addEventListener('keydown', e => {
   if (e.key === 'Enter') generateCards();
 });
+
+// ── Obsidian Integration ──
+let obsidianConnected = false;
+let loadedNoteContent  = null;
+let loadedNoteTitle    = '';
+let lastGeneratedContent = null;
+let currentNoteFiles   = [];
+
+function obsBaseUrl() {
+  return (document.getElementById('obs-url').value.trim() || 'http://localhost:27123').replace(/\/$/, '');
+}
+
+function obsApiHeaders(contentType) {
+  const key = document.getElementById('obs-key').value.trim();
+  const h = {};
+  if (contentType) h['Content-Type'] = contentType;
+  if (key) h['Authorization'] = `Bearer ${key}`;
+  return h;
+}
+
+async function testObsidianConnection() {
+  const btn = document.getElementById('obs-test-btn');
+  const msg = document.getElementById('obs-test-msg');
+  const dot = document.getElementById('obs-status-dot');
+  btn.disabled = true;
+  msg.textContent = '연결 확인 중...';
+  msg.style.color = 'var(--text-secondary)';
+  try {
+    const res = await fetch(`${obsBaseUrl()}/vault/`, { headers: obsApiHeaders() });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    obsidianConnected = true;
+    dot.className = 'obs-status-dot obs-status-on';
+    msg.textContent = '✓ 연결 성공! 볼트에 접근 가능합니다.';
+    msg.style.color = '#16A34A';
+    document.getElementById('obs-import-btn').style.display = 'flex';
+    if (lastGeneratedContent) document.getElementById('obs-save-btn').style.display = 'flex';
+  } catch (e) {
+    obsidianConnected = false;
+    dot.className = 'obs-status-dot obs-status-off';
+    msg.textContent = `✗ 연결 실패: ${e.message}`;
+    msg.style.color = 'var(--red)';
+  }
+  btn.disabled = false;
+}
+
+async function fetchObsidianFiles(query) {
+  const base = obsBaseUrl();
+  const headers = obsApiHeaders();
+  if (query) {
+    const res = await fetch(`${base}/search/simple/?query=${encodeURIComponent(query)}`, { headers });
+    if (!res.ok) throw new Error('검색 실패');
+    const data = await res.json();
+    return (data.results || data || []).map(item => {
+      const p = item.filename || item.path || item;
+      return { path: p, basename: p.split('/').pop().replace(/\.md$/i, '') };
+    });
+  }
+  const res = await fetch(`${base}/vault/`, { headers });
+  if (!res.ok) throw new Error('파일 목록 조회 실패');
+  const data = await res.json();
+  const files = data.files || data.vaultFiles || [];
+  return files
+    .filter(f => (typeof f === 'string' ? f : f.path || f.filename || '').match(/\.md$/i))
+    .map(f => {
+      const p = typeof f === 'string' ? f : (f.path || f.filename || '');
+      return { path: p, basename: p.split('/').pop().replace(/\.md$/i, '') };
+    });
+}
+
+async function loadObsidianNote(path) {
+  try {
+    const res = await fetch(`${obsBaseUrl()}/vault/${encodeURIComponent(path)}`, {
+      headers: { ...obsApiHeaders(), 'Accept': 'text/markdown' }
+    });
+    if (!res.ok) throw new Error('노트 읽기 실패');
+    const content = await res.text();
+    loadedNoteContent = content;
+    loadedNoteTitle   = path.split('/').pop().replace(/\.md$/i, '');
+    const titleMatch  = content.match(/^#\s+(.+)$/m);
+    document.getElementById('topic').value = titleMatch ? titleMatch[1].trim() : loadedNoteTitle;
+    document.getElementById('note-source-name').textContent = loadedNoteTitle;
+    document.getElementById('note-source-indicator').style.display = 'flex';
+    closeNoteModal();
+    setStatus(`✓ "${loadedNoteTitle}" 노트를 불러왔습니다.`);
+  } catch (e) {
+    alert(`노트 불러오기 실패: ${e.message}`);
+  }
+}
+
+function clearNoteSource() {
+  loadedNoteContent = null;
+  loadedNoteTitle   = '';
+  document.getElementById('note-source-indicator').style.display = 'none';
+  document.getElementById('note-source-name').textContent = '';
+}
+
+async function saveToObsidian(cardData) {
+  if (!cardData) { setStatus('먼저 카드뉴스를 생성하세요.', true); return; }
+  const btn = document.getElementById('obs-save-btn');
+  btn.disabled = true;
+  try {
+    const topic = cardData.topic || document.getElementById('topic').value.trim() || '카드뉴스';
+    const today = new Date().toISOString().split('T')[0];
+    const safeName = topic.replace(/[\\/:*?"<>|]/g, '_');
+    const filename  = `카드뉴스/${safeName}_${today}.md`;
+
+    const pointsMd = (cardData.points || []).map((pt, i) => `
+## ${i + 1}. ${pt.label}
+
+${pt.detail}
+
+> ${pt.highlight}
+`).join('\n');
+
+    const itemsMd = (cardData.closing?.items || []).map(it => `- ${it}`).join('\n');
+
+    const markdown = `---
+tags: [카드뉴스, AI생성]
+created: ${today}
+topic: ${topic}
+---
+
+# ${topic} 카드뉴스
+
+## 📌 소개
+
+**${cardData.intro?.heading || ''}**
+
+${cardData.intro?.body || ''}
+${pointsMd}
+## 💬 핵심 인사이트
+
+> "${cardData.quote?.text || ''}"
+> — ${cardData.quote?.source || ''}
+
+## 🎯 마무리
+
+**${cardData.closing?.heading || ''}**
+
+${itemsMd}
+
+---
+*이 노트는 카드뉴스 자동생성기에 의해 생성되었습니다.*
+`;
+
+    const url = `${obsBaseUrl()}/vault/${encodeURIComponent(filename)}`;
+    let res = await fetch(url, {
+      method: 'POST',
+      headers: obsApiHeaders('text/markdown'),
+      body: markdown
+    });
+    if (!res.ok && res.status !== 204) {
+      res = await fetch(url, {
+        method: 'PUT',
+        headers: obsApiHeaders('text/markdown'),
+        body: markdown
+      });
+      if (!res.ok) throw new Error(`저장 실패 (HTTP ${res.status})`);
+    }
+    setStatus(`✓ Obsidian 저장 완료: "${filename}"`);
+  } catch (e) {
+    setStatus(`Obsidian 저장 실패: ${e.message}`, true);
+  }
+  btn.disabled = false;
+}
+
+function openNoteModal() {
+  const modal = document.getElementById('note-modal');
+  modal.style.display = 'flex';
+  document.getElementById('note-search').value = '';
+  document.getElementById('note-list').innerHTML =
+    '<div style="padding:20px; color:var(--text-tertiary); text-align:center;">로딩 중...</div>';
+  fetchObsidianFiles().then(files => {
+    currentNoteFiles = files;
+    renderNoteList(files);
+  }).catch(e => {
+    document.getElementById('note-list').innerHTML =
+      `<div style="padding:20px; color:var(--red);">오류: ${e.message}</div>`;
+  });
+}
+
+function closeNoteModal() {
+  document.getElementById('note-modal').style.display = 'none';
+}
+
+function renderNoteList(files) {
+  const list = document.getElementById('note-list');
+  if (!files.length) {
+    list.innerHTML = '<div style="padding:20px; color:var(--text-tertiary); text-align:center;">노트가 없습니다.</div>';
+    return;
+  }
+  list.innerHTML = files.map(f =>
+    `<div class="note-list-item" onclick="loadObsidianNote('${f.path.replace(/\\/g,'\\\\').replace(/'/g,"\\'")}')">
+      <div class="note-item-title">${esc(f.basename)}</div>
+      <div class="note-item-path">${esc(f.path)}</div>
+    </div>`
+  ).join('');
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  const noteSearch = document.getElementById('note-search');
+  if (noteSearch) noteSearch.addEventListener('input', function() {
+    clearTimeout(this._t);
+    this._t = setTimeout(() => {
+      const q = this.value.trim();
+      if (!q) { renderNoteList(currentNoteFiles); return; }
+      fetchObsidianFiles(q).then(renderNoteList).catch(() => {
+        const lc = q.toLowerCase();
+        renderNoteList(currentNoteFiles.filter(f =>
+          f.basename.toLowerCase().includes(lc) || f.path.toLowerCase().includes(lc)
+        ));
+      });
+    }, 350);
+  });
+});
 </script>
+
+<!-- ── Note Browser Modal ── -->
+<div id="note-modal" class="note-modal" onclick="if(event.target===this)closeNoteModal()">
+  <div class="note-modal-inner">
+    <div class="note-modal-header">
+      <div class="note-modal-title">Obsidian 노트 선택</div>
+      <button class="note-modal-close" onclick="closeNoteModal()">✕</button>
+    </div>
+    <div class="note-modal-search">
+      <input type="text" id="note-search" placeholder="노트 검색..." />
+    </div>
+    <div class="note-list" id="note-list"></div>
+  </div>
+</div>
 
 </body>
 </html>
