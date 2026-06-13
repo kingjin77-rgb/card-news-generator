@@ -750,9 +750,13 @@
           <label for="topic">주제</label>
           <div style="display:flex; gap:0; align-items:stretch;">
             <input type="text" id="topic" placeholder="예: AI가 바꾸는 미래 직업" style="flex:1;" />
-            <button class="obs-import-btn-small" id="obs-import-btn" onclick="openNoteModal()" title="Obsidian 노트 불러오기">
+            <button class="obs-import-btn-small" id="obs-import-btn" onclick="openNoteModal('obsidian')" title="Obsidian / LLM Wiki 노트 불러오기">
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
-              노트
+              OBS
+            </button>
+            <button class="notion-import-btn-small" id="notion-import-btn" onclick="openNoteModal('notion')" title="Notion 페이지 불러오기">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
+              NON
             </button>
           </div>
           <div id="note-source-indicator" class="note-source-badge">
@@ -851,6 +855,28 @@
       </div>
     </div>
 
+    <div class="notion-section">
+      <div class="notion-section-header">
+        <div class="sidebar-section-label" style="margin-bottom:0;">Notion 연동</div>
+        <span id="notion-status-dot" class="notion-status-dot notion-status-off"></span>
+      </div>
+      <div class="field-group">
+        <div>
+          <label for="notion-token">Integration Token</label>
+          <input type="password" id="notion-token" placeholder="secret_xxx..." />
+        </div>
+        <div>
+          <label for="notion-parent-id">저장 위치 페이지 ID (선택)</label>
+          <input type="text" id="notion-parent-id" placeholder="페이지 URL에서 ID 복사" />
+        </div>
+        <button class="btn-secondary" onclick="testNotionConnection()" id="notion-test-btn" style="font-size:11px; padding:8px 14px; justify-content:center;">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          연결 테스트
+        </button>
+        <div id="notion-test-msg" style="font-size:11px; color:var(--text-secondary); min-height:16px;"></div>
+      </div>
+    </div>
+
     <div>
       <div class="progress-bar"><div class="progress-fill" id="progress"></div></div>
       <div class="status-msg" id="status-msg">주제를 입력하고 생성을 시작하세요.</div>
@@ -872,6 +898,10 @@
       <button class="btn-obs-save" id="obs-save-btn" onclick="saveToObsidian(lastGeneratedContent)">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
         Obsidian에 저장
+      </button>
+      <button class="btn-notion-save" id="notion-save-btn" onclick="saveToNotion(lastGeneratedContent)">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/></svg>
+        Notion에 저장
       </button>
     </div>
 
@@ -1005,6 +1035,116 @@
 }
 .btn-obs-save:hover { background: #6D28D9; border-color: #6D28D9; }
 .btn-obs-save:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* Notion section */
+.notion-section {
+  border: 1px solid #B8C0CC;
+  padding: 14px;
+  background: #FAFBFF;
+}
+.notion-section-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.notion-status-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+.notion-status-on  { background: #2383E2; }
+.notion-status-off { background: var(--border-medium); }
+
+.notion-import-btn-small {
+  background: #2383E2;
+  color: #fff;
+  border: none;
+  padding: 0 10px;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+  display: none;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  font-family: var(--font-body);
+  letter-spacing: 0.04em;
+}
+.notion-import-btn-small:hover { background: #1A6FC4; }
+
+.btn-notion-save {
+  display: none;
+  width: 100%;
+  background: #2383E2;
+  color: var(--white);
+  border: 2px solid #2383E2;
+  border-radius: 0;
+  padding: 10px 24px;
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  transition: background 0.15s;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.btn-notion-save:hover { background: #1A6FC4; border-color: #1A6FC4; }
+.btn-notion-save:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* Modal source tabs */
+.modal-source-tabs {
+  display: flex;
+  border-bottom: 2px solid var(--black);
+}
+.modal-source-tab {
+  padding: 10px 18px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  font-family: var(--font-body);
+  transition: color 0.1s;
+}
+.modal-source-tab:hover { color: var(--black); }
+.modal-source-tab.active { color: var(--black); border-bottom-color: var(--black); }
+.modal-source-tab.tab-notion.active { color: #2383E2; border-bottom-color: #2383E2; }
+.modal-source-tab.tab-obs.active   { color: #7C3AED; border-bottom-color: #7C3AED; }
+
+/* LLM Wiki filter chips */
+.wiki-filter-bar {
+  display: flex;
+  gap: 6px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border-subtle);
+  background: #FAFAFE;
+}
+.wiki-filter-chip {
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  border: 1px solid var(--border-medium);
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: var(--font-body);
+  transition: all 0.1s;
+}
+.wiki-filter-chip:hover { background: #F5F3FF; border-color: #C4B5FD; color: #7C3AED; }
+.wiki-filter-chip.active { background: #7C3AED; border-color: #7C3AED; color: #fff; }
 
 /* Note modal */
 .note-modal {
@@ -1233,6 +1373,7 @@ async function generateCards() {
     document.getElementById('toolbar-actions').style.display = 'flex';
     document.getElementById('canvas-title').textContent = content.topic;
     if (obsidianConnected) document.getElementById('obs-save-btn').style.display = 'flex';
+    if (notionConnected)   document.getElementById('notion-save-btn').style.display = 'flex';
 
     setTimeout(() => setProgress(0), 2000);
 
@@ -1614,23 +1755,79 @@ ${itemsMd}
   btn.disabled = false;
 }
 
-function openNoteModal() {
-  const modal = document.getElementById('note-modal');
-  modal.style.display = 'flex';
+// ── Modal state ──
+let currentModalSource = 'obsidian'; // 'obsidian' | 'notion'
+let wikiFilter = 'all';              // 'all' | 'wiki' | 'raw'
+let currentNotionPages = [];
+
+function openNoteModal(source) {
+  const bothConnected = obsidianConnected && notionConnected;
+  currentModalSource = source || (obsidianConnected ? 'obsidian' : 'notion');
+
+  // Show source tabs only if both are connected
+  document.getElementById('modal-source-tabs').style.display = bothConnected ? 'flex' : 'none';
+
+  document.getElementById('note-modal').style.display = 'flex';
+  document.getElementById('note-search').value = '';
+  _activateModalSource(currentModalSource);
+}
+
+function switchModalSource(source) {
+  currentModalSource = source;
+  _activateModalSource(source);
+}
+
+function _activateModalSource(source) {
+  // Update tabs
+  document.getElementById('tab-obs').classList.toggle('active', source === 'obsidian');
+  document.getElementById('tab-notion').classList.toggle('active', source === 'notion');
+
+  // Show/hide wiki filter
+  document.getElementById('wiki-filter-bar').style.display = source === 'obsidian' ? 'flex' : 'none';
+
+  const title = source === 'obsidian' ? 'Obsidian / LLM Wiki 노트 선택' : 'Notion 페이지 선택';
+  document.getElementById('note-modal-title').textContent = title;
+
   document.getElementById('note-search').value = '';
   document.getElementById('note-list').innerHTML =
     '<div style="padding:20px; color:var(--text-tertiary); text-align:center;">로딩 중...</div>';
-  fetchObsidianFiles().then(files => {
-    currentNoteFiles = files;
-    renderNoteList(files);
-  }).catch(e => {
-    document.getElementById('note-list').innerHTML =
-      `<div style="padding:20px; color:var(--red);">오류: ${e.message}</div>`;
-  });
+
+  if (source === 'obsidian') {
+    fetchObsidianFiles().then(files => {
+      currentNoteFiles = files;
+      _applyWikiFilter();
+    }).catch(e => {
+      document.getElementById('note-list').innerHTML =
+        `<div style="padding:20px; color:var(--red);">오류: ${e.message}</div>`;
+    });
+  } else {
+    fetchNotionPages().then(pages => {
+      currentNotionPages = pages;
+      renderNotionList(pages);
+    }).catch(e => {
+      document.getElementById('note-list').innerHTML =
+        `<div style="padding:20px; color:var(--red);">오류: ${e.message}</div>`;
+    });
+  }
 }
 
 function closeNoteModal() {
   document.getElementById('note-modal').style.display = 'none';
+}
+
+function setWikiFilter(f) {
+  wikiFilter = f;
+  document.querySelectorAll('.wiki-filter-chip').forEach(c => {
+    c.classList.toggle('active', c.dataset.filter === f);
+  });
+  _applyWikiFilter();
+}
+
+function _applyWikiFilter() {
+  let files = currentNoteFiles;
+  if (wikiFilter === 'wiki') files = files.filter(f => f.path.startsWith('wiki/') || f.path.includes('/wiki/'));
+  if (wikiFilter === 'raw')  files = files.filter(f => f.path.startsWith('raw/')  || f.path.includes('/raw/'));
+  renderNoteList(files);
 }
 
 function renderNoteList(files) {
@@ -1639,41 +1836,266 @@ function renderNoteList(files) {
     list.innerHTML = '<div style="padding:20px; color:var(--text-tertiary); text-align:center;">노트가 없습니다.</div>';
     return;
   }
-  list.innerHTML = files.map(f =>
-    `<div class="note-list-item" onclick="loadObsidianNote('${f.path.replace(/\\/g,'\\\\').replace(/'/g,"\\'")}')">
-      <div class="note-item-title">${esc(f.basename)}</div>
+
+  const isWiki = f => f.path.startsWith('wiki/') || f.path.includes('/wiki/');
+  const isRaw  = f => f.path.startsWith('raw/')  || f.path.includes('/raw/');
+
+  list.innerHTML = files.map(f => {
+    const badge = isWiki(f)
+      ? '<span style="font-size:9px;background:#7C3AED;color:#fff;padding:1px 5px;margin-left:6px;vertical-align:middle;">WIKI</span>'
+      : isRaw(f)
+      ? '<span style="font-size:9px;background:#D97706;color:#fff;padding:1px 5px;margin-left:6px;vertical-align:middle;">RAW</span>'
+      : '';
+    return `<div class="note-list-item" onclick="loadObsidianNote('${f.path.replace(/\\/g,'\\\\').replace(/'/g,"\\'")}')">
+      <div class="note-item-title">${esc(f.basename)}${badge}</div>
       <div class="note-item-path">${esc(f.path)}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderNotionList(pages) {
+  const list = document.getElementById('note-list');
+  if (!pages.length) {
+    list.innerHTML = '<div style="padding:20px; color:var(--text-tertiary); text-align:center;">페이지가 없습니다.</div>';
+    return;
+  }
+  list.innerHTML = pages.map(p =>
+    `<div class="note-list-item" onclick="loadNotionPage('${p.id.replace(/'/g,"\\'")}','${p.title.replace(/'/g,"\\'")}')">
+      <div class="note-item-title">${esc(p.title || '(제목 없음)')}</div>
+      <div class="note-item-path">${esc(p.url || p.id)}</div>
     </div>`
   ).join('');
 }
 
+// ── Notion Integration ──
+let notionConnected = false;
+const NOTION_API = 'https://api.notion.com/v1';
+const NOTION_VER = '2022-06-28';
+
+function notionHeaders(contentType) {
+  const token = document.getElementById('notion-token').value.trim();
+  const h = { 'Authorization': `Bearer ${token}`, 'Notion-Version': NOTION_VER };
+  if (contentType) h['Content-Type'] = contentType;
+  return h;
+}
+
+async function testNotionConnection() {
+  const btn = document.getElementById('notion-test-btn');
+  const msg = document.getElementById('notion-test-msg');
+  const dot = document.getElementById('notion-status-dot');
+  btn.disabled = true;
+  msg.textContent = '연결 확인 중...';
+  msg.style.color = 'var(--text-secondary)';
+  try {
+    const res = await fetch(`${NOTION_API}/users/me`, { headers: notionHeaders() });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    notionConnected = true;
+    dot.className = 'notion-status-dot notion-status-on';
+    msg.textContent = `✓ 연결 성공! (${data.name || 'Workspace'})`;
+    msg.style.color = '#2383E2';
+    document.getElementById('notion-import-btn').style.display = 'flex';
+    if (lastGeneratedContent) document.getElementById('notion-save-btn').style.display = 'flex';
+  } catch (e) {
+    notionConnected = false;
+    dot.className = 'notion-status-dot notion-status-off';
+    msg.textContent = `✗ 연결 실패: ${e.message}`;
+    msg.style.color = 'var(--red)';
+  }
+  btn.disabled = false;
+}
+
+async function fetchNotionPages(query) {
+  const body = query
+    ? { query, filter: { value: 'page', property: 'object' }, page_size: 50 }
+    : { filter: { value: 'page', property: 'object' }, page_size: 50 };
+  const res = await fetch(`${NOTION_API}/search`, {
+    method: 'POST',
+    headers: notionHeaders('application/json'),
+    body: JSON.stringify(body)
+  });
+  if (!res.ok) throw new Error(`Notion 검색 실패 (HTTP ${res.status})`);
+  const data = await res.json();
+  return (data.results || []).map(p => ({
+    id: p.id,
+    title: _notionPageTitle(p),
+    url: p.url
+  }));
+}
+
+function _notionPageTitle(page) {
+  const props = page.properties || {};
+  for (const key of ['title', 'Title', 'Name', 'name']) {
+    const prop = props[key];
+    if (prop?.title?.length) return prop.title.map(t => t.plain_text).join('');
+  }
+  for (const prop of Object.values(props)) {
+    if (prop?.type === 'title' && prop.title?.length)
+      return prop.title.map(t => t.plain_text).join('');
+  }
+  return '(제목 없음)';
+}
+
+async function _fetchNotionBlocks(blockId) {
+  const res = await fetch(`${NOTION_API}/blocks/${blockId}/children?page_size=100`, {
+    headers: notionHeaders()
+  });
+  if (!res.ok) return [];
+  const data = await res.json();
+  return data.results || [];
+}
+
+function _notionBlocksToText(blocks) {
+  const lines = [];
+  for (const b of blocks) {
+    const richText = arr => (arr || []).map(t => t.plain_text).join('');
+    switch (b.type) {
+      case 'heading_1': lines.push('# ' + richText(b.heading_1?.rich_text)); break;
+      case 'heading_2': lines.push('## ' + richText(b.heading_2?.rich_text)); break;
+      case 'heading_3': lines.push('### ' + richText(b.heading_3?.rich_text)); break;
+      case 'paragraph': { const t = richText(b.paragraph?.rich_text); if (t) lines.push(t); break; }
+      case 'bulleted_list_item': lines.push('- ' + richText(b.bulleted_list_item?.rich_text)); break;
+      case 'numbered_list_item': lines.push('- ' + richText(b.numbered_list_item?.rich_text)); break;
+      case 'quote': lines.push('> ' + richText(b.quote?.rich_text)); break;
+      case 'callout': lines.push('> ' + richText(b.callout?.rich_text)); break;
+      case 'toggle': lines.push(richText(b.toggle?.rich_text)); break;
+    }
+  }
+  return lines.join('\n');
+}
+
+async function loadNotionPage(pageId, title) {
+  try {
+    const blocks = await _fetchNotionBlocks(pageId);
+    const text = _notionBlocksToText(blocks);
+    loadedNoteContent = text;
+    loadedNoteTitle   = title || pageId;
+    document.getElementById('topic').value = title || '';
+    document.getElementById('note-source-name').textContent = `[Notion] ${title}`;
+    document.getElementById('note-source-indicator').style.display = 'flex';
+    closeNoteModal();
+    setStatus(`✓ Notion 페이지 "${title}" 불러왔습니다.`);
+  } catch (e) {
+    alert(`Notion 페이지 불러오기 실패: ${e.message}`);
+  }
+}
+
+async function saveToNotion(cardData) {
+  if (!cardData) { setStatus('먼저 카드뉴스를 생성하세요.', true); return; }
+  const btn = document.getElementById('notion-save-btn');
+  btn.disabled = true;
+  try {
+    const topic = cardData.topic || document.getElementById('topic').value.trim() || '카드뉴스';
+    const parentId = document.getElementById('notion-parent-id').value.trim();
+
+    const children = [];
+
+    // Intro
+    if (cardData.intro?.heading) {
+      children.push({ object: 'block', type: 'heading_2', heading_2: { rich_text: [{ type: 'text', text: { content: cardData.intro.heading } }] } });
+    }
+    if (cardData.intro?.body) {
+      children.push({ object: 'block', type: 'paragraph', paragraph: { rich_text: [{ type: 'text', text: { content: cardData.intro.body } }] } });
+    }
+
+    // Points
+    for (const pt of (cardData.points || [])) {
+      children.push({ object: 'block', type: 'heading_3', heading_3: { rich_text: [{ type: 'text', text: { content: `${pt.num}. ${pt.label}` } }] } });
+      if (pt.detail) children.push({ object: 'block', type: 'paragraph', paragraph: { rich_text: [{ type: 'text', text: { content: pt.detail } }] } });
+      if (pt.highlight) children.push({ object: 'block', type: 'quote', quote: { rich_text: [{ type: 'text', text: { content: pt.highlight } }] } });
+    }
+
+    // Quote
+    if (cardData.quote?.text) {
+      children.push({ object: 'block', type: 'quote', quote: { rich_text: [{ type: 'text', text: { content: `"${cardData.quote.text}" — ${cardData.quote.source || ''}` } }] } });
+    }
+
+    // Closing items
+    for (const item of (cardData.closing?.items || [])) {
+      children.push({ object: 'block', type: 'bulleted_list_item', bulleted_list_item: { rich_text: [{ type: 'text', text: { content: item } }] } });
+    }
+
+    const pageBody = {
+      properties: { title: { title: [{ type: 'text', text: { content: `${topic} 카드뉴스` } }] } },
+      children
+    };
+    if (parentId) {
+      const cleanId = parentId.replace(/[^a-f0-9]/gi, '');
+      pageBody.parent = { type: 'page_id', page_id: cleanId };
+    }
+
+    const res = await fetch(`${NOTION_API}/pages`, {
+      method: 'POST',
+      headers: notionHeaders('application/json'),
+      body: JSON.stringify(pageBody)
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.message || `HTTP ${res.status}`);
+    }
+    const created = await res.json();
+    setStatus(`✓ Notion 저장 완료: "${topic} 카드뉴스"`);
+    if (created.url) window.open(created.url, '_blank');
+  } catch (e) {
+    setStatus(`Notion 저장 실패: ${e.message}`, true);
+  }
+  btn.disabled = false;
+}
+
+// ── LLM Wiki 저장 경로 포함한 Obsidian 저장 업데이트 ──
+// (기존 saveToObsidian이 이미 wiki/ 경로 지원 - 사용자가 경로 앞에 wiki/ 추가 가능)
+
 document.addEventListener('DOMContentLoaded', () => {
   const noteSearch = document.getElementById('note-search');
-  if (noteSearch) noteSearch.addEventListener('input', function() {
+  if (!noteSearch) return;
+  noteSearch.addEventListener('input', function() {
     clearTimeout(this._t);
     this._t = setTimeout(() => {
       const q = this.value.trim();
-      if (!q) { renderNoteList(currentNoteFiles); return; }
-      fetchObsidianFiles(q).then(renderNoteList).catch(() => {
-        const lc = q.toLowerCase();
-        renderNoteList(currentNoteFiles.filter(f =>
-          f.basename.toLowerCase().includes(lc) || f.path.toLowerCase().includes(lc)
-        ));
-      });
+      if (currentModalSource === 'notion') {
+        if (!q) { renderNotionList(currentNotionPages); return; }
+        fetchNotionPages(q).then(renderNotionList).catch(() => {
+          const lc = q.toLowerCase();
+          renderNotionList(currentNotionPages.filter(p => p.title.toLowerCase().includes(lc)));
+        });
+      } else {
+        if (!q) { _applyWikiFilter(); return; }
+        fetchObsidianFiles(q).then(files => {
+          currentNoteFiles = files;
+          _applyWikiFilter();
+        }).catch(() => {
+          const lc = q.toLowerCase();
+          const filtered = currentNoteFiles.filter(f =>
+            f.basename.toLowerCase().includes(lc) || f.path.toLowerCase().includes(lc)
+          );
+          renderNoteList(filtered);
+        });
+      }
     }, 350);
   });
 });
 </script>
 
-<!-- ── Note Browser Modal ── -->
+<!-- ── Unified Note Browser Modal ── -->
 <div id="note-modal" class="note-modal" onclick="if(event.target===this)closeNoteModal()">
   <div class="note-modal-inner">
     <div class="note-modal-header">
-      <div class="note-modal-title">Obsidian 노트 선택</div>
+      <div class="note-modal-title" id="note-modal-title">노트 선택</div>
       <button class="note-modal-close" onclick="closeNoteModal()">✕</button>
     </div>
+    <!-- Source tabs -->
+    <div class="modal-source-tabs" id="modal-source-tabs" style="display:none;">
+      <button class="modal-source-tab tab-obs" id="tab-obs" onclick="switchModalSource('obsidian')">Obsidian</button>
+      <button class="modal-source-tab tab-notion" id="tab-notion" onclick="switchModalSource('notion')">Notion</button>
+    </div>
+    <!-- LLM Wiki filter (Obsidian only) -->
+    <div class="wiki-filter-bar" id="wiki-filter-bar">
+      <button class="wiki-filter-chip active" data-filter="all"   onclick="setWikiFilter('all')">전체</button>
+      <button class="wiki-filter-chip"         data-filter="wiki" onclick="setWikiFilter('wiki')">wiki/</button>
+      <button class="wiki-filter-chip"         data-filter="raw"  onclick="setWikiFilter('raw')">raw/</button>
+    </div>
     <div class="note-modal-search">
-      <input type="text" id="note-search" placeholder="노트 검색..." />
+      <input type="text" id="note-search" placeholder="검색..." />
     </div>
     <div class="note-list" id="note-list"></div>
   </div>
