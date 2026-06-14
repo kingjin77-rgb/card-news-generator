@@ -2,7 +2,14 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#0F1B2D">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="변호사 AI">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="description" content="Claude AI 기반 법률 문서 생성 앱 — 계약서, 내용증명, 법률 상담">
+<link rel="manifest" href="data:application/json,%7B%22name%22%3A%22%EB%82%98%EB%A7%8C%EC%9D%98+%EB%B3%80%ED%98%B8%EC%82%AC+AI%22%2C%22short_name%22%3A%22%EB%B3%80%ED%98%B8%EC%82%AC+AI%22%2C%22description%22%3A%22Claude+AI+%EA%B8%B0%EB%B0%98+%EB%B2%95%EB%A5%A0+%EB%AC%B8%EC%84%9C+%EC%83%9D%EC%84%B1+%EC%95%B1%22%2C%22start_url%22%3A%22.%2F%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%23060D1A%22%2C%22theme_color%22%3A%22%230F1B2D%22%2C%22icons%22%3A%5B%7B%22src%22%3A%22data%3Aimage%2Fsvg%2Bxml%2C%3Csvg+xmlns%3D%27http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%27+viewBox%3D%270+0+192+192%27%3E%3Crect+width%3D%27192%27+height%3D%27192%27+fill%3D%27%230F1B2D%27%2F%3E%3Ctext+y%3D%27.9em%27+font-size%3D%27144%27%3E%E2%9A%96%EF%B8%8F%3C%2Ftext%3E%3C%2Fsvg%3E%22%2C%22sizes%22%3A%22192x192%22%2C%22type%22%3A%22image%2Fsvg%2Bxml%22%7D%5D%7D">
 <title>나만의 변호사 AI ⚖️</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -647,12 +654,183 @@ select {
 
 .doc-footer strong { color: #C9A84C; }
 
-/* Print Styles */
+/* ─── Mobile Toggle Button ─────────────────────────────────── */
+.mobile-menu-btn {
+  display: none;
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text);
+  width: 40px;
+  height: 40px;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+/* ─── Mobile Overlay ───────────────────────────────────────── */
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  z-index: 200;
+}
+.sidebar-overlay.active { display: block; }
+
+/* ─── Mobile Bottom Action Bar ─────────────────────────────── */
+.mobile-action-bar {
+  display: none;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--surface);
+  border-top: 2px solid var(--primary);
+  padding: 10px 16px;
+  padding-bottom: calc(10px + env(safe-area-inset-bottom));
+  gap: 8px;
+  z-index: 150;
+}
+
+.mobile-action-bar .btn-primary,
+.mobile-action-bar .btn-secondary {
+  flex: 1;
+  padding: 14px 8px;
+  font-size: 13px;
+}
+
+/* ─── Mobile Bottom Nav ─────────────────────────────────────── */
+.mobile-bottom-nav {
+  display: none;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  z-index: 140;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.mobile-bottom-nav::-webkit-scrollbar { display: none; }
+
+.mobile-nav-inner {
+  display: flex;
+  min-width: max-content;
+  padding: 0 8px;
+}
+
+.mobile-nav-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding: 8px 14px;
+  background: transparent;
+  border: none;
+  border-top: 3px solid transparent;
+  color: var(--text-muted);
+  font-family: 'Noto Sans KR', sans-serif;
+  font-size: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s;
+}
+.mobile-nav-btn .nav-icon { font-size: 20px; line-height: 1; }
+.mobile-nav-btn.active { color: var(--primary); border-top-color: var(--primary); }
+
+/* ─── Responsive — Mobile ≤768px ───────────────────────────── */
+@media (max-width: 768px) {
+  :root { --sidebar-w: 100%; }
+
+  html, body { height: auto; }
+
+  .app-wrapper { height: 100dvh; overflow: hidden; }
+
+  header {
+    padding: 0 14px;
+    height: 52px;
+  }
+
+  .logo { font-size: 15px; gap: 8px; }
+  .logo-icon { width: 28px; height: 28px; font-size: 15px; }
+  .logo-badge { display: none; }
+  .header-disclaimer { display: none; }
+  .mobile-menu-btn { display: flex; }
+
+  .main-area { overflow: hidden; }
+
+  /* Sidebar becomes fixed overlay drawer */
+  aside {
+    position: fixed;
+    top: 0;
+    left: -100%;
+    width: min(360px, 92vw);
+    height: 100dvh;
+    z-index: 210;
+    transition: left 0.28s ease;
+    border-right: 2px solid var(--primary);
+    padding-bottom: 80px;
+  }
+  aside.open { left: 0; }
+
+  .canvas-area { flex: 1; overflow-y: auto; }
+
+  .canvas-toolbar { padding: 10px 14px; }
+
+  .toolbar-actions { display: none !important; }
+
+  .doc-canvas { padding: 12px; }
+
+  .doc-header { padding: 20px 20px; }
+  .doc-title { font-size: 19px; }
+
+  .doc-parties { padding: 14px 20px; }
+  .parties-list { flex-direction: column; gap: 8px; }
+
+  .doc-body { padding: 20px 20px; }
+  .doc-section { margin-bottom: 20px; padding-bottom: 20px; }
+  .section-content { font-size: 13px; }
+
+  .doc-warnings,
+  .doc-nextsteps { padding: 14px 20px; }
+
+  .doc-footer { padding: 12px 20px; font-size: 10px; }
+
+  .empty-state { padding: 40px 24px; }
+  .empty-state h3 { font-size: 16px; }
+  .empty-state p { font-size: 12px; }
+
+  /* Show mobile bottom nav */
+  .mobile-bottom-nav { display: block; }
+
+  /* Pad canvas above bottom nav */
+  .canvas-area { padding-bottom: 68px; }
+  .doc-canvas { padding-bottom: 80px; }
+
+  /* Hide desktop category grid in sidebar */
+  .sidebar-section:first-child { display: none; }
+
+  /* Sidebar generate button larger touch targets */
+  .btn-primary { padding: 16px 20px; font-size: 15px; min-height: 52px; }
+  .btn-secondary { padding: 13px 16px; min-height: 44px; }
+
+  textarea { min-height: 80px; }
+}
+
+/* ─── Print Styles ─────────────────────────────────────────── */
 @media print {
   .app-wrapper > header,
   aside,
-  .canvas-toolbar { display: none !important; }
-  .canvas-area { overflow: visible; }
+  .canvas-toolbar,
+  .mobile-bottom-nav,
+  .mobile-action-bar,
+  .sidebar-overlay { display: none !important; }
+  .canvas-area { overflow: visible; padding-bottom: 0; }
   .doc-canvas { padding: 0; }
   .legal-document { box-shadow: none; max-width: 100%; }
   body { background: white; }
@@ -663,9 +841,15 @@ select {
 
 <div class="app-wrapper">
 
+  <!-- Mobile Overlay -->
+  <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
+
   <!-- ── Header ── -->
   <header>
     <div class="logo">
+      <button class="mobile-menu-btn" onclick="toggleSidebar()" aria-label="메뉴">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
       <div class="logo-icon">⚖️</div>
       나만의 변호사 AI
       <span class="logo-badge">Beta</span>
@@ -818,6 +1002,31 @@ select {
     </main>
 
   </div>
+
+  <!-- Mobile Bottom Navigation -->
+  <nav class="mobile-bottom-nav" id="mobile-bottom-nav">
+    <div class="mobile-nav-inner">
+      <button class="mobile-nav-btn active" data-cat="contract" onclick="selectCategory('contract');closeSidebar()">
+        <span class="nav-icon">📋</span>계약서
+      </button>
+      <button class="mobile-nav-btn" data-cat="consult" onclick="selectCategory('consult');closeSidebar()">
+        <span class="nav-icon">💬</span>법률상담
+      </button>
+      <button class="mobile-nav-btn" data-cat="notice" onclick="selectCategory('notice');closeSidebar()">
+        <span class="nav-icon">✉️</span>내용증명
+      </button>
+      <button class="mobile-nav-btn" data-cat="review" onclick="selectCategory('review');closeSidebar()">
+        <span class="nav-icon">🔍</span>계약검토
+      </button>
+      <button class="mobile-nav-btn" data-cat="complaint" onclick="selectCategory('complaint');closeSidebar()">
+        <span class="nav-icon">⚡</span>고소장
+      </button>
+      <button class="mobile-nav-btn" data-cat="rights" onclick="selectCategory('rights');closeSidebar()">
+        <span class="nav-icon">🛡️</span>권리설명
+      </button>
+    </div>
+  </nav>
+
 </div>
 
 <script>
@@ -882,10 +1091,26 @@ const CATEGORIES = {
   }
 };
 
+/* ─── Mobile Sidebar ─────────────────────────────────────── */
+function toggleSidebar() {
+  const aside = document.querySelector('aside');
+  const overlay = document.getElementById('sidebar-overlay');
+  aside.classList.toggle('open');
+  overlay.classList.toggle('active');
+}
+
+function closeSidebar() {
+  document.querySelector('aside').classList.remove('open');
+  document.getElementById('sidebar-overlay').classList.remove('active');
+}
+
 /* ─── Category Selection ─────────────────────────────────── */
 function selectCategory(cat) {
   currentCategory = cat;
   document.querySelectorAll('.cat-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.cat === cat);
+  });
+  document.querySelectorAll('.mobile-nav-btn').forEach(b => {
     b.classList.toggle('active', b.dataset.cat === cat);
   });
   const cfg = CATEGORIES[cat];
@@ -1097,7 +1322,10 @@ function renderDocument(doc) {
 
   document.getElementById('empty-state').style.display = 'none';
   document.getElementById('doc-canvas').style.display = 'flex';
-  document.getElementById('legal-document').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  closeSidebar();
+  setTimeout(() => {
+    document.getElementById('canvas-area').scrollTo({ top: 0, behavior: 'smooth' });
+  }, 100);
 }
 
 /* ─── Export Functions ───────────────────────────────────── */
