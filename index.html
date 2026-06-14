@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0F1B2D">
+<title>Claude AI 앱 모음</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  min-height: 100vh;
+  background: #060D1A;
+  color: #E8EDF5;
+  font-family: 'Noto Sans KR', sans-serif;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+.header {
+  text-align: center;
+  margin-bottom: 48px;
+}
+.header h1 {
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  margin-bottom: 8px;
+}
+.header p { font-size: 14px; color: #8FA8C8; }
+.apps {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 20px;
+  width: 100%;
+  max-width: 700px;
+}
+.app-card {
+  background: #0F1B2D;
+  border: 2px solid #2C4A7C;
+  padding: 28px;
+  text-decoration: none;
+  color: inherit;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  transition: border-color 0.15s;
+}
+.app-card:hover { border-color: #C9A84C; }
+.app-icon { font-size: 36px; }
+.app-name { font-size: 18px; font-weight: 800; }
+.app-badge {
+  display: inline-block;
+  background: #C9A84C;
+  color: #000;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 8px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  width: fit-content;
+}
+.app-desc { font-size: 13px; color: #8FA8C8; line-height: 1.6; }
+.features { list-style: none; padding: 0; }
+.features li {
+  font-size: 12px;
+  color: #8FA8C8;
+  padding: 3px 0;
+  padding-left: 14px;
+  position: relative;
+}
+.features li::before {
+  content: '›';
+  position: absolute;
+  left: 0;
+  color: #C9A84C;
+  font-weight: 700;
+}
+.footer {
+  margin-top: 48px;
+  font-size: 11px;
+  color: #4A6180;
+  text-align: center;
+}
+@media (max-width: 480px) {
+  .header h1 { font-size: 22px; }
+  .apps { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>⚡ Claude AI 앱 모음</h1>
+  <p>Claude API 기반 업무 자동화 도구</p>
+</div>
+
+<div class="apps">
+  <a class="app-card" href="lawyer-ai.html">
+    <div class="app-icon">⚖️</div>
+    <div>
+      <div class="app-name">나만의 변호사 AI</div>
+      <div class="app-badge">New</div>
+    </div>
+    <div class="app-desc">Claude AI가 대한민국 법률에 기반한 법률 문서와 상담을 제공합니다.</div>
+    <ul class="features">
+      <li>계약서 작성 / 계약서 검토</li>
+      <li>법률 상담 / 권리 설명</li>
+      <li>내용증명 / 고소장 작성</li>
+      <li>모바일 최적화 · 인쇄/PDF 지원</li>
+    </ul>
+  </a>
+
+  <a class="app-card" href="card-news-generator.html">
+    <div class="app-icon">📰</div>
+    <div>
+      <div class="app-name">카드뉴스 생성기</div>
+    </div>
+    <div class="app-desc">주제를 입력하면 AI가 SNS용 카드뉴스를 자동으로 제작합니다.</div>
+    <ul class="features">
+      <li>5가지 톤 스타일 선택</li>
+      <li>4가지 컬러 테마</li>
+      <li>PNG 고해상도 다운로드</li>
+      <li>이미지 자동 삽입</li>
+    </ul>
+  </a>
+</div>
+
+<div class="footer">
+  Claude API Key 필요 · <a href="https://console.anthropic.com" style="color:#C9A84C;">발급받기</a>
+</div>
+
+</body>
+</html>
