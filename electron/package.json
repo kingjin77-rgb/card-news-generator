@@ -6,7 +6,7 @@
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "build": "electron-builder --win",
+    "build": "electron-builder --win --publish never",
     "build:mac": "electron-builder --mac",
     "build:linux": "electron-builder --linux"
   },
@@ -18,7 +18,6 @@
     "appId": "com.lawfirm.management",
     "productName": "법무영업관리",
     "copyright": "Copyright © 2026",
-    "publish": "never",
     "directories": {
       "output": "dist"
     },
