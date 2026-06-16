@@ -18,6 +18,7 @@
     "appId": "com.lawfirm.management",
     "productName": "법무영업관리",
     "copyright": "Copyright © 2026",
+    "publish": "never",
     "directories": {
       "output": "dist"
     },
