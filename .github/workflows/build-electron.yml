@@ -1,0 +1,61 @@
+name: Build 법무영업관리 Windows App
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'electron/**'
+      - '법무영업관리.html'
+      - '.github/workflows/build-electron.yml'
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: electron/package.json
+
+      - name: Download SheetJS (offline bundling)
+        working-directory: electron
+        run: |
+          curl -L "https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js" -o assets/xlsx.min.js
+          $size = (Get-Item assets/xlsx.min.js).Length
+          Write-Host "SheetJS downloaded: $size bytes"
+        shell: powershell
+
+      - name: Install dependencies
+        working-directory: electron
+        run: npm install
+
+      - name: Build Windows installer
+        working-directory: electron
+        run: npm run build
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload installer artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: 법무영업관리-Windows-Setup
+          path: |
+            electron/dist/*.exe
+            electron/dist/*.msi
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: List build output
+        working-directory: electron
+        run: |
+          Write-Host "Build output:"
+          Get-ChildItem dist -Recurse | Select-Object Name, Length
+        shell: powershell
+        if: always()
