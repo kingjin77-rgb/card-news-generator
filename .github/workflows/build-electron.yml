@@ -26,10 +26,10 @@ jobs:
       - name: Download SheetJS (offline bundling)
         working-directory: electron
         run: |
-          curl -L "https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js" -o assets/xlsx.min.js
+          curl.exe -L "https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js" -o assets/xlsx.min.js
           $size = (Get-Item assets/xlsx.min.js).Length
           Write-Host "SheetJS downloaded: $size bytes"
-        shell: powershell
+        shell: pwsh
 
       - name: Install dependencies
         working-directory: electron
