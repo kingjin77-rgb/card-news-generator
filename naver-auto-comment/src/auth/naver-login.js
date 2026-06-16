@@ -9,15 +9,41 @@ const COOKIES_PATH = path.join(__dirname, '../../logs/cookies.json');
 
 const TYPING_DELAY = () => Math.floor(Math.random() * 70) + 80; // 80~150ms
 
+// 시스템에 사전 설치된 Chromium 후보 경로 목록
+const CHROMIUM_CANDIDATES = [
+  process.env.CHROMIUM_EXECUTABLE_PATH,
+  '/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
+  '/usr/bin/chromium-browser',
+  '/usr/bin/chromium',
+  '/usr/bin/google-chrome',
+];
+
+function findChromiumPath() {
+  for (const p of CHROMIUM_CANDIDATES.filter(Boolean)) {
+    if (fs.existsSync(p)) return p;
+  }
+  return undefined;
+}
+
 export async function createBrowser() {
-  return chromium.launch({
+  const launchOpts = {
     headless: process.env.HEADLESS !== 'false',
     args: [
       '--no-sandbox',
       '--disable-blink-features=AutomationControlled',
       '--disable-web-security',
+      '--disable-dev-shm-usage',
+      '--ignore-certificate-errors',
     ],
-  });
+  };
+
+  const executablePath = findChromiumPath();
+  if (executablePath) {
+    launchOpts.executablePath = executablePath;
+    logger.info(`Chromium 경로: ${executablePath}`);
+  }
+
+  return chromium.launch(launchOpts);
 }
 
 export async function getLoggedInContext(browser) {
