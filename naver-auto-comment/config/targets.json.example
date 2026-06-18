@@ -1,0 +1,26 @@
+[
+  {
+    "type": "cafe",
+    "url": "https://cafe.naver.com/mycafe/12345",
+    "keyword": "부동산투자",
+    "enabled": true
+  },
+  {
+    "type": "cafe",
+    "url": "https://cafe.naver.com/mycafe/67890",
+    "keyword": "주식정보",
+    "enabled": true
+  },
+  {
+    "type": "blog",
+    "url": "https://blog.naver.com/someuser/223456789",
+    "keyword": "여행정보",
+    "enabled": true
+  },
+  {
+    "type": "blog",
+    "url": "https://blog.naver.com/anotheruser/223456790",
+    "keyword": "맛집추천",
+    "enabled": false
+  }
+]

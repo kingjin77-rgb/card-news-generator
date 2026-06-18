@@ -1,0 +1,6 @@
+node_modules/
+.env
+logs/*.db
+logs/*.json
+logs/*.log
+config/targets.json
