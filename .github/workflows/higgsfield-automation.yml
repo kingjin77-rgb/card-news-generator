@@ -1,0 +1,67 @@
+name: Card News + Higgsfield Video Automation
+
+on:
+  workflow_dispatch:
+    inputs:
+      topic:
+        description: '카드뉴스 주제 (예: AI와 직업의 미래)'
+        required: true
+        default: 'AI와 직업의 미래'
+      tone:
+        description: '콘텐츠 톤'
+        required: false
+        default: 'informative'
+        type: choice
+        options:
+          - informative
+          - persuasive
+          - educational
+          - trendy
+          - expert
+      video_model:
+        description: 'Higgsfield 비디오 모델'
+        required: false
+        default: 'kling3_0'
+        type: choice
+        options:
+          - kling3_0
+          - wan2_7
+          - seedance2_0
+          - minimax_hailuo_02
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install anthropic requests
+
+      - name: Generate card news content and video
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          HF_API_KEY: ${{ secrets.HF_API_KEY }}
+          HF_API_SECRET: ${{ secrets.HF_API_SECRET }}
+        run: |
+          python scripts/claude_higgsfield.py \
+            --topic "${{ github.event.inputs.topic }}" \
+            --tone "${{ github.event.inputs.tone }}" \
+            --model "${{ github.event.inputs.video_model }}"
+
+      - name: Upload generated artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: card-news-${{ github.run_number }}
+          path: output/
+          retention-days: 7
