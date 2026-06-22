@@ -7,51 +7,25 @@ import logger from '../utils/logger.js';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const COOKIES_PATH = path.join(__dirname, '../../logs/cookies.json');
 
-const TYPING_DELAY = () => Math.floor(Math.random() * 70) + 80; // 80~150ms
-
-// 시스템에 사전 설치된 Chromium 후보 경로 목록
-const CHROMIUM_CANDIDATES = [
-  process.env.CHROMIUM_EXECUTABLE_PATH,
-  '/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
-  '/usr/bin/chromium-browser',
-  '/usr/bin/chromium',
-  '/usr/bin/google-chrome',
-];
-
-function findChromiumPath() {
-  for (const p of CHROMIUM_CANDIDATES.filter(Boolean)) {
-    if (fs.existsSync(p)) return p;
-  }
-  return undefined;
-}
-
 export async function createBrowser() {
   const launchOpts = {
     headless: process.env.HEADLESS !== 'false',
     args: [
       '--no-sandbox',
       '--disable-blink-features=AutomationControlled',
-      '--disable-web-security',
       '--disable-dev-shm-usage',
-      '--ignore-certificate-errors',
     ],
   };
-
-  const executablePath = findChromiumPath();
-  if (executablePath) {
-    launchOpts.executablePath = executablePath;
-    logger.info(`Chromium 경로: ${executablePath}`);
-  }
-
   return chromium.launch(launchOpts);
 }
 
 export async function getLoggedInContext(browser) {
   const context = await browser.newContext({
     userAgent:
-      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36',
     locale: 'ko-KR',
     timezoneId: 'Asia/Seoul',
+    viewport: { width: 1280, height: 900 },
   });
 
   if (fs.existsSync(COOKIES_PATH)) {
@@ -62,11 +36,10 @@ export async function getLoggedInContext(browser) {
 
       const page = await context.newPage();
       await page.goto('https://www.naver.com', { waitUntil: 'domcontentloaded' });
-      const isLoggedIn = await page.$('a.MyView-module__link___HpHMW') !== null ||
-                         await page.$('#gnb_login_button') === null;
+      const loginBtn = await page.$('#gnb_login_button');
       await page.close();
 
-      if (isLoggedIn) {
+      if (!loginBtn) {
         logger.info('기존 세션 유효 - 재로그인 불필요');
         return context;
       }
@@ -80,42 +53,79 @@ export async function getLoggedInContext(browser) {
   return context;
 }
 
+async function pasteText(page, selector, text) {
+  await page.click(selector);
+  await page.evaluate(
+    ([sel, val]) => {
+      const el = document.querySelector(sel);
+      el.value = val;
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+      el.dispatchEvent(new Event('change', { bubbles: true }));
+    },
+    [selector, text]
+  );
+}
+
 async function doLogin(context) {
   const page = await context.newPage();
 
   try {
-    await page.goto('https://nid.naver.com/nidlogin.login', { waitUntil: 'networkidle' });
+    await page.goto('https://nid.naver.com/nidlogin.login?mode=form&url=https%3A%2F%2Fwww.naver.com', {
+      waitUntil: 'networkidle',
+    });
+    await randomDelay(1000, 2000);
 
     await page.waitForSelector('#id', { timeout: 10000 });
-    await page.click('#id');
-    await page.type('#id', process.env.NAVER_ID, { delay: TYPING_DELAY() });
 
-    await randomDelay(300, 700);
-
-    await page.click('#pw');
-    await page.type('#pw', process.env.NAVER_PW, { delay: TYPING_DELAY() });
-
+    await pasteText(page, '#id', process.env.NAVER_ID);
+    await randomDelay(300, 600);
+    await pasteText(page, '#pw', process.env.NAVER_PW);
     await randomDelay(500, 1000);
 
-    await page.click('.btn_login');
-    await page.waitForNavigation({ waitUntil: 'networkidle', timeout: 15000 });
+    await page.screenshot({ path: path.join(__dirname, '../../logs/login_before_click.png') });
+
+    await page.click('.btn_login, #log\\.login');
+
+    try {
+      await page.waitForNavigation({ waitUntil: 'networkidle', timeout: 15000 });
+    } catch {
+      await randomDelay(3000, 5000);
+    }
 
     const currentUrl = page.url();
+    await page.screenshot({ path: path.join(__dirname, '../../logs/login_after_click.png') });
+    logger.info(`로그인 후 URL: ${currentUrl}`);
 
     if (currentUrl.includes('captcha') || currentUrl.includes('protect')) {
-      logger.error('CAPTCHA 또는 보안 검증 화면 감지. 수동 개입이 필요합니다.');
-      logger.error(`현재 URL: ${currentUrl}`);
-      throw new Error('CAPTCHA_REQUIRED');
+      logger.error('CAPTCHA 감지 - 브라우저에서 수동으로 풀어주세요');
+      logger.info('30초 대기 중... 브라우저에서 CAPTCHA를 풀어주세요');
+      await page.waitForNavigation({ timeout: 30000 }).catch(() => {});
     }
 
     if (currentUrl.includes('nidlogin')) {
-      logger.error('로그인 실패 - ID/PW를 확인하세요');
-      throw new Error('LOGIN_FAILED');
+      const errorMsg = await page.$eval('.error_message, .err_common', (el) => el.textContent).catch(() => '');
+      if (errorMsg) logger.error(`로그인 오류: ${errorMsg}`);
+
+      // CAPTCHA 있는 경우 수동 대기
+      const hasCaptcha = await page.$('#captcha, .captcha_box, img[alt*="캡차"]');
+      if (hasCaptcha) {
+        logger.info('CAPTCHA 감지! 브라우저에서 수동으로 풀고 로그인해주세요 (60초 대기)');
+        await page.waitForURL('**/naver.com**', { timeout: 60000 }).catch(() => {});
+      } else {
+        throw new Error('LOGIN_FAILED');
+      }
     }
 
-    const cookies = await context.cookies();
-    fs.writeFileSync(COOKIES_PATH, JSON.stringify(cookies, null, 2));
-    logger.info('로그인 성공 - 쿠키 저장 완료');
+    const finalUrl = page.url();
+    if (finalUrl.includes('naver.com') && !finalUrl.includes('nidlogin')) {
+      const cookies = await context.cookies();
+      const logsDir = path.join(__dirname, '../../logs');
+      if (!fs.existsSync(logsDir)) fs.mkdirSync(logsDir, { recursive: true });
+      fs.writeFileSync(COOKIES_PATH, JSON.stringify(cookies, null, 2));
+      logger.info('로그인 성공 - 쿠키 저장 완료');
+    } else {
+      throw new Error('LOGIN_FAILED');
+    }
   } finally {
     await page.close();
   }
