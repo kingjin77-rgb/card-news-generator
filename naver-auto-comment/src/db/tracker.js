@@ -1,59 +1,64 @@
-import Database from 'better-sqlite3';
+import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const DB_PATH = path.join(__dirname, '../../logs/comments.db');
+const DB_PATH = path.join(__dirname, '../../logs/comments.json');
 
-let db;
-
-function getDb() {
-  if (!db) {
-    db = new Database(DB_PATH);
-    db.exec(`
-      CREATE TABLE IF NOT EXISTS commented_posts (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        url TEXT UNIQUE NOT NULL,
-        comment TEXT,
-        type TEXT,
-        commented_at DATETIME DEFAULT CURRENT_TIMESTAMP
-      );
-      CREATE TABLE IF NOT EXISTS daily_counts (
-        date TEXT PRIMARY KEY,
-        count INTEGER DEFAULT 0
-      );
-    `);
+function loadData() {
+  if (!fs.existsSync(DB_PATH)) return { posts: [], dailyCounts: {} };
+  try {
+    return JSON.parse(fs.readFileSync(DB_PATH, 'utf-8'));
+  } catch {
+    return { posts: [], dailyCounts: {} };
   }
-  return db;
+}
+
+function saveData(data) {
+  const dir = path.dirname(DB_PATH);
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(DB_PATH, JSON.stringify(data, null, 2), 'utf-8');
 }
 
 export function hasCommented(url) {
-  const row = getDb().prepare('SELECT id FROM commented_posts WHERE url = ?').get(url);
-  return !!row;
+  const data = loadData();
+  return data.posts.some((p) => p.url === url);
 }
 
 export function markCommented(url, comment, type) {
-  const db = getDb();
-  db.prepare('INSERT OR IGNORE INTO commented_posts (url, comment, type) VALUES (?, ?, ?)').run(url, comment, type);
+  const data = loadData();
+  if (data.posts.some((p) => p.url === url)) return;
+  data.posts.push({ url, comment, type, commented_at: new Date().toISOString() });
   const today = new Date().toISOString().slice(0, 10);
-  db.prepare('INSERT INTO daily_counts (date, count) VALUES (?, 1) ON CONFLICT(date) DO UPDATE SET count = count + 1').run(today);
+  data.dailyCounts[today] = (data.dailyCounts[today] || 0) + 1;
+  saveData(data);
 }
 
 export function getDailyCount() {
+  const data = loadData();
   const today = new Date().toISOString().slice(0, 10);
-  const row = getDb().prepare('SELECT count FROM daily_counts WHERE date = ?').get(today);
-  return row ? row.count : 0;
+  return data.dailyCounts[today] || 0;
 }
 
 export function getHistory(limit = 50) {
-  return getDb().prepare('SELECT url, comment, type, commented_at FROM commented_posts ORDER BY commented_at DESC LIMIT ?').all(limit);
+  const data = loadData();
+  return data.posts
+    .sort((a, b) => new Date(b.commented_at) - new Date(a.commented_at))
+    .slice(0, limit);
 }
 
 export function getStats() {
-  const db = getDb();
-  const total = db.prepare('SELECT COUNT(*) as cnt FROM commented_posts').get().cnt;
+  const data = loadData();
+  const total = data.posts.length;
   const today = new Date().toISOString().slice(0, 10);
-  const todayRow = db.prepare('SELECT count FROM daily_counts WHERE date = ?').get(today);
-  const byType = db.prepare('SELECT type, COUNT(*) as cnt FROM commented_posts GROUP BY type').all();
-  return { total, today: todayRow ? todayRow.count : 0, byType };
+  const todayCount = data.dailyCounts[today] || 0;
+  const byType = {};
+  data.posts.forEach((p) => {
+    byType[p.type] = (byType[p.type] || 0) + 1;
+  });
+  return {
+    total,
+    today: todayCount,
+    byType: Object.entries(byType).map(([type, cnt]) => ({ type, cnt })),
+  };
 }
