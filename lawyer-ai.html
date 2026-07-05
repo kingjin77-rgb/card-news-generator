@@ -654,6 +654,92 @@ select {
 
 .doc-footer strong { color: #C9A84C; }
 
+/* ─── Toast Notification ───────────────────────────────────── */
+.toast-wrap {
+  position: fixed;
+  top: 68px;
+  right: 16px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+}
+.toast {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--primary);
+  padding: 11px 16px;
+  font-size: 13px;
+  color: var(--text);
+  font-family: 'Noto Sans KR', sans-serif;
+  max-width: 280px;
+  animation: toastIn .22s ease;
+  pointer-events: auto;
+  line-height: 1.5;
+}
+.toast.success { border-left-color: var(--success); }
+.toast.error   { border-left-color: var(--danger); }
+.toast.fade    { animation: toastOut .3s ease forwards; }
+@keyframes toastIn  { from { opacity:0; transform:translateX(20px); } to { opacity:1; transform:translateX(0); } }
+@keyframes toastOut { from { opacity:1; } to { opacity:0; transform:translateX(20px); } }
+
+/* ─── Collapse Sidebar Button (Desktop) ───────────────────── */
+.collapse-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-sec);
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.15s;
+}
+.collapse-btn:hover { border-color: var(--primary); color: var(--primary); }
+
+.app-wrapper.collapsed aside { display: none; }
+
+/* ─── Example Fill Button ──────────────────────────────────── */
+.example-btn {
+  background: transparent;
+  border: 1px dashed var(--border);
+  color: var(--text-muted);
+  font-family: 'Noto Sans KR', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 6px 12px;
+  cursor: pointer;
+  width: 100%;
+  margin-top: 6px;
+  transition: all 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+}
+.example-btn:hover { border-color: var(--primary-dim); color: var(--primary); }
+
+/* ─── API Key Saved Badge ──────────────────────────────────── */
+.api-saved-badge {
+  font-size: 10px;
+  color: var(--success);
+  font-family: 'Noto Sans KR', sans-serif;
+  margin-top: 4px;
+  display: none;
+}
+.api-saved-badge.show { display: block; }
+
+/* ─── Char Count ───────────────────────────────────────────── */
+.char-count {
+  font-size: 10px;
+  color: var(--text-muted);
+  text-align: right;
+  margin-top: 3px;
+}
+
 /* ─── Mobile Toggle Button ─────────────────────────────────── */
 .mobile-menu-btn {
   display: none;
@@ -841,6 +927,9 @@ select {
 
 <div class="app-wrapper">
 
+  <!-- Toast Container -->
+  <div class="toast-wrap" id="toast-wrap"></div>
+
   <!-- Mobile Overlay -->
   <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeSidebar()"></div>
 
@@ -854,9 +943,14 @@ select {
       나만의 변호사 AI
       <span class="logo-badge">Beta</span>
     </div>
-    <div class="header-disclaimer">
-      <div class="disclaimer-dot"></div>
-      AI 생성 문서 · 법적 효력 없음 · 참고용 전용
+    <div style="display:flex;align-items:center;gap:8px;">
+      <button class="collapse-btn" id="collapse-btn" onclick="toggleCollapse()" title="사이드바 접기/펼치기" style="display:none;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="18"/><path d="M14 9l-4 3 4 3"/></svg>
+      </button>
+      <div class="header-disclaimer">
+        <div class="disclaimer-dot"></div>
+        AI 생성 · 법적 효력 없음
+      </div>
     </div>
   </header>
 
@@ -900,8 +994,13 @@ select {
       <div class="sidebar-section">
         <div class="sidebar-label" id="input-label">상황 설명</div>
         <div class="field-row">
-          <textarea id="situation" placeholder="계약 당사자, 목적, 조건 등을 자세히 입력하세요.&#10;예) 서울시 강남구 아파트 임대차 계약서. 보증금 5천만원, 월세 80만원, 계약기간 2년."></textarea>
+          <textarea id="situation" placeholder="계약 당사자, 목적, 조건 등을 자세히 입력하세요.&#10;예) 서울시 강남구 아파트 임대차 계약서. 보증금 5천만원, 월세 80만원, 계약기간 2년." oninput="updateCharCount()"></textarea>
+          <div class="char-count"><span id="char-count">0</span>자</div>
         </div>
+        <button class="example-btn" onclick="fillExample()">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+          예시 자동 채우기
+        </button>
         <div class="hint" id="input-hint">계약 유형, 당사자 정보, 주요 조건을 포함하면 더 정확한 문서가 생성됩니다.</div>
       </div>
 
@@ -923,7 +1022,8 @@ select {
         <div class="sidebar-label">API 설정</div>
         <div class="field-row">
           <label>Claude API Key</label>
-          <input type="password" id="api-key" placeholder="sk-ant-..." />
+          <input type="password" id="api-key" placeholder="sk-ant-..." oninput="saveApiKey()" />
+          <div class="api-saved-badge" id="api-saved-badge">✓ 저장됨 (브라우저에 기억)</div>
         </div>
         <div class="field-row">
           <label>모델</label>
@@ -978,11 +1078,15 @@ select {
       <div class="canvas-toolbar">
         <div class="toolbar-title" id="canvas-title">문서 미리보기</div>
         <div class="toolbar-actions" id="toolbar-actions">
-          <button class="btn-secondary" onclick="printDocument()">
+          <button class="btn-secondary" onclick="copyDocText()" title="텍스트 복사">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            복사
+          </button>
+          <button class="btn-secondary" onclick="printDocument()" title="인쇄/PDF">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
             인쇄
           </button>
-          <button class="btn-secondary" onclick="downloadPNG()">
+          <button class="btn-secondary" onclick="downloadPNG()" title="PNG 저장">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
             PNG
           </button>
@@ -991,8 +1095,17 @@ select {
 
       <div id="empty-state" class="empty-state">
         <div class="empty-icon">⚖️</div>
-        <h3>법률 문서 없음</h3>
-        <p>왼쪽에서 서비스를 선택하고 상황을 입력한 뒤<br><strong>문서 생성</strong> 버튼을 누르세요.<br><br>API 키 없이 <strong>샘플 미리보기</strong>로 먼저 체험하세요.</p>
+        <h3>나만의 변호사 AI</h3>
+        <p style="margin-bottom:20px;">서비스를 선택하고 상황을 입력하면<br>AI가 법률 문서를 즉시 생성합니다.</p>
+        <div style="display:flex;flex-direction:column;gap:8px;width:100%;max-width:280px;">
+          <button class="btn-primary" onclick="loadDemo()" style="font-size:13px;padding:13px;">
+            ▶ 샘플 미리보기 (API 불필요)
+          </button>
+          <button class="btn-secondary" onclick="document.querySelector('aside').classList.add('open');document.getElementById('sidebar-overlay').classList.add('active');document.getElementById('situation').focus();" style="font-size:12px;">
+            ✏️ 직접 입력하기
+          </button>
+        </div>
+        <p style="font-size:11px;color:var(--text-muted);margin-top:20px;">Ctrl+Enter 로 빠르게 생성</p>
       </div>
 
       <div class="doc-canvas" id="doc-canvas" style="display:none">
@@ -1091,6 +1204,80 @@ const CATEGORIES = {
   }
 };
 
+/* ─── Toast System ───────────────────────────────────────── */
+function showToast(msg, type = 'success', duration = 3000) {
+  const wrap = document.getElementById('toast-wrap');
+  const t = document.createElement('div');
+  t.className = `toast ${type}`;
+  t.textContent = msg;
+  wrap.appendChild(t);
+  setTimeout(() => {
+    t.classList.add('fade');
+    setTimeout(() => t.remove(), 300);
+  }, duration);
+}
+
+/* ─── API Key Persistence ─────────────────────────────────── */
+function saveApiKey() {
+  const key = document.getElementById('api-key').value;
+  if (key) {
+    localStorage.setItem('lawyer_api_key', key);
+    document.getElementById('api-saved-badge').classList.add('show');
+  } else {
+    localStorage.removeItem('lawyer_api_key');
+    document.getElementById('api-saved-badge').classList.remove('show');
+  }
+}
+
+function loadApiKey() {
+  const saved = localStorage.getItem('lawyer_api_key');
+  if (saved) {
+    document.getElementById('api-key').value = saved;
+    document.getElementById('api-saved-badge').classList.add('show');
+  }
+}
+
+/* ─── Char Count ─────────────────────────────────────────── */
+function updateCharCount() {
+  const len = document.getElementById('situation').value.length;
+  document.getElementById('char-count').textContent = len;
+}
+
+/* ─── Example Fill ───────────────────────────────────────── */
+const EXAMPLES = {
+  contract: '서울 강남구 역삼동 아파트 임대차 계약서.\n갑: 홍길동 (임대인), 을: 김철수 (임차인)\n보증금 5천만원, 월세 80만원, 계약기간 2026.07.01~2028.06.30\n특약: 반려동물 불가, 전입신고 즉시 완료',
+  consult: '온라인 쇼핑몰에서 노트북을 150만원에 구매했는데, 광고와 다른 사양으로 배송되었습니다. 판매자에게 환불을 요청했으나 "개봉 후 환불 불가" 정책을 이유로 거부하고 있습니다. 어떻게 대응해야 하나요?',
+  notice: '임차인 김철수가 2026년 3월부터 5월까지 월세 80만원씩 총 240만원을 미납하였습니다. 계약 해지 및 14일 이내 퇴거와 미납 임대료 납부를 요구하는 내용증명을 작성해주세요.',
+  review: '제3조 (위약금): 어느 일방이 본 계약을 위반할 경우 계약금의 2배를 위약금으로 배상한다.\n제5조 (저작권): 납품 결과물의 소유권은 갑에게 귀속된다.\n제7조 (비밀유지): 을은 업무상 취득한 갑의 정보를 외부에 공개하지 않는다.',
+  complaint: '중고나라에서 스마트폰 갤럭시 S25를 50만원에 구매하기로 하고 계좌이체를 했는데 판매자(닉네임: phone123)가 연락을 끊고 물건을 보내지 않았습니다. 2026년 5월 15일 거래, 우리은행 1002-123-456789 계좌로 이체했으며 카카오톡 대화 내역과 이체 영수증을 보유하고 있습니다.',
+  rights: '직장에서 갑자기 해고 통보를 받았습니다. 5년 근무했으며 서면 통보는 없었고 구두로만 "내일부터 나오지 말라"고 했습니다. 퇴직금과 실업급여를 받을 수 있는지, 부당해고로 다툴 수 있는지 알고 싶습니다.'
+};
+
+function fillExample() {
+  const ta = document.getElementById('situation');
+  ta.value = EXAMPLES[currentCategory] || '';
+  updateCharCount();
+  ta.focus();
+  showToast('예시가 채워졌습니다. 필요에 맞게 수정하세요.', 'success', 2500);
+}
+
+/* ─── Copy Document Text ─────────────────────────────────── */
+function copyDocText() {
+  const el = document.getElementById('legal-document');
+  if (!el) return;
+  const text = el.innerText;
+  navigator.clipboard.writeText(text).then(() => {
+    showToast('📋 문서가 클립보드에 복사되었습니다.', 'success');
+  }).catch(() => {
+    showToast('복사 실패 — 브라우저 권한을 확인하세요.', 'error');
+  });
+}
+
+/* ─── Sidebar Collapse (Desktop) ─────────────────────────── */
+function toggleCollapse() {
+  document.querySelector('.app-wrapper').classList.toggle('collapsed');
+}
+
 /* ─── Mobile Sidebar ─────────────────────────────────────── */
 function toggleSidebar() {
   const aside = document.querySelector('aside');
@@ -1120,6 +1307,14 @@ function selectCategory(cat) {
   document.getElementById('parties-section').style.display = cfg.showParties ? 'block' : 'none';
 }
 
+/* ─── Keyboard Shortcut ──────────────────────────────────── */
+document.addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+    e.preventDefault();
+    generateDocument();
+  }
+});
+
 /* ─── Utilities ──────────────────────────────────────────── */
 function esc(s) {
   return String(s ?? '')
@@ -1133,6 +1328,7 @@ function setStatus(msg, isError = false) {
   const el = document.getElementById('status-msg');
   el.textContent = msg;
   el.className = 'status-msg' + (isError ? ' error' : '');
+  if (isError) showToast('⚠️ ' + msg, 'error', 4000);
 }
 
 function setProgress(pct) {
@@ -1248,11 +1444,13 @@ ${cfg.systemSuffix}
     renderDocument(doc);
     setProgress(100);
     setStatus(`✓ "${doc.title}" 생성 완료`);
+    showToast(`✅ "${doc.title}" 생성 완료`, 'success');
 
     document.getElementById('print-btn').disabled = false;
     document.getElementById('png-btn').disabled = false;
     document.getElementById('toolbar-actions').style.display = 'flex';
     document.getElementById('canvas-title').textContent = doc.title;
+    document.getElementById('collapse-btn').style.display = 'flex';
 
     setTimeout(() => setProgress(0), 2000);
 
@@ -1547,6 +1745,19 @@ function loadDemo() {
 
 /* ─── Init ───────────────────────────────────────────────── */
 selectCategory('contract');
+loadApiKey();
+
+// Show collapse btn only on desktop
+if (window.innerWidth > 768) {
+  // Show after first doc generation
+}
+
+// Show keyboard shortcut hint in status
+setTimeout(() => {
+  if (!document.getElementById('situation').value) {
+    setStatus('Ctrl+Enter로 빠르게 생성 · 예시 버튼으로 바로 시작');
+  }
+}, 1500);
 </script>
 </body>
 </html>
