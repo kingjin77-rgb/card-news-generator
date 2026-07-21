@@ -806,6 +806,7 @@
         <div>
           <label for="api-key">Claude API Key</label>
           <input type="password" id="api-key" placeholder="sk-ant-..." />
+          <div class="key-saved" id="key-saved">✓ 브라우저에 저장됨</div>
         </div>
         <div>
           <label for="model">모델</label>
@@ -881,11 +882,59 @@
   .theme-green .card-closing .close-dot { background: #16A34A; }
   .theme-green .card-closing .close-cta { background: #14532D; }
   .theme-green .card-quote { background: #16A34A; }
+
+  /* ── Inline Editing ── */
+  [contenteditable] {
+    outline: none;
+    border-radius: 2px;
+    transition: box-shadow 0.15s;
+    cursor: text;
+  }
+  [contenteditable]:hover {
+    box-shadow: 0 0 0 2px rgba(239,68,68,0.35);
+  }
+  [contenteditable]:focus {
+    box-shadow: 0 0 0 2px var(--red);
+  }
+
+  /* ── API Key saved badge ── */
+  .key-saved {
+    font-size: 10px;
+    color: #16A34A;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    margin-top: 4px;
+    display: none;
+  }
+  .key-saved.visible { display: block; }
 </style>
 
 <script>
 let currentTheme = '';
 let generatedCards = [];
+
+// ── API Key persistence ──
+(function initApiKey() {
+  const saved = localStorage.getItem('claude-api-key');
+  if (saved) {
+    document.getElementById('api-key').value = saved;
+    document.getElementById('key-saved').classList.add('visible');
+  }
+})();
+
+document.addEventListener('DOMContentLoaded', () => {
+  const keyInput = document.getElementById('api-key');
+  keyInput.addEventListener('change', () => {
+    const val = keyInput.value.trim();
+    if (val) {
+      localStorage.setItem('claude-api-key', val);
+      document.getElementById('key-saved').classList.add('visible');
+    } else {
+      localStorage.removeItem('claude-api-key');
+      document.getElementById('key-saved').classList.remove('visible');
+    }
+  });
+});
 
 // Theme switcher
 document.querySelectorAll('.color-swatch').forEach(s => {
@@ -1012,8 +1061,11 @@ async function generateCards() {
     setProgress(70);
 
     if (!res.ok) {
-      const err = await res.json();
-      throw new Error(err.error?.message || `API 오류 ${res.status}`);
+      const errText = await res.text();
+      const errObj = JSON.parse(errText || '{}');
+      const err = new Error(errObj.error?.message || `API 오류 ${res.status}`);
+      err._responseText = errText;
+      throw err;
     }
 
     const data = await res.json();
@@ -1037,7 +1089,7 @@ async function generateCards() {
     setTimeout(() => setProgress(0), 2000);
 
   } catch (e) {
-    setStatus(e.message, true);
+    setStatus(parseApiError(e, e._responseText), true);
     setProgress(0);
   }
 
@@ -1162,6 +1214,35 @@ function renderCards(content) {
 
   empty.style.display = 'none';
   grid.style.display = 'grid';
+
+  makeEditable([
+    '.card-tag', '.card-title', '.card-subtitle',
+    '.card-overline', '.card-heading', '.card-body',
+    '.point-label', '.point-detail', '.point-highlight',
+    '.quote-text', '.quote-source',
+    '.close-overline', '.close-heading', '.close-cta',
+    '.close-item span'
+  ].join(','));
+}
+
+function parseApiError(e, responseText) {
+  if (!navigator.onLine) return '인터넷 연결을 확인하세요.';
+  if (responseText?.includes('invalid_api_key') || responseText?.includes('authentication_error'))
+    return 'API 키가 올바르지 않습니다. sk-ant-로 시작하는 키를 확인하세요.';
+  if (responseText?.includes('rate_limit'))
+    return 'API 사용량 한도에 도달했습니다. 잠시 후 다시 시도하세요.';
+  if (responseText?.includes('overloaded'))
+    return '클로드 서버가 혼잡합니다. 잠시 후 재시도하세요.';
+  if (e.message?.includes('JSON') || e.message?.includes('파싱'))
+    return 'AI 응답 파싱 오류. 다시 생성을 시도하세요.';
+  return `오류: ${e.message}`;
+}
+
+function makeEditable(selector) {
+  document.querySelectorAll(selector).forEach(el => {
+    el.contentEditable = 'true';
+    el.spellcheck = false;
+  });
 }
 
 function esc(str) {
